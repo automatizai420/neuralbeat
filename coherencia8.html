@@ -1,0 +1,2918 @@
+<!DOCTYPE html>
+<html lang="es" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Coherencia · v7</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;1,300&family=Syne:wght@300;400;600&display=swap');
+
+/* ══════════════════════════════════════════════════════
+   DESIGN TOKENS
+══════════════════════════════════════════════════════ */
+:root {
+  --bg:      #060a10;
+  --surface: #0a1220;
+  --surface2:#0d1828;
+  --border:  rgba(80,180,200,0.1);
+  --border2: rgba(80,180,200,0.18);
+  --cyan:    #50b4c8;
+  --cyan-d:  #2a7a90;
+  --gold:    #d4a84b;
+  --green:   #4ecb8a;
+  --red:     #e05555;
+  --purple:  #9b7de8;
+  --blue:    #4488cc;
+  --amber:   #e8a020;
+  --text:    #7aa8b8;
+  --muted:   #2e4a58;
+  --mono:    'DM Mono', monospace;
+  --sans:    'Syne', sans-serif;
+  --r:       6px;
+
+  /* Retention phase colors */
+  --hold-full:  #d4a84b;  /* full lungs hold */
+  --hold-empty: #9b7de8;  /* empty lungs hold */
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:var(--sans);font-weight:300;
+  display:flex;flex-direction:column;
+}
+
+/* ══ LAYOUT GRID ═══════════════════════════════════ */
+.shell{
+  display:grid;
+  grid-template-columns:220px 1fr;
+  grid-template-rows:48px 1fr 86px;
+  height:100vh;gap:1px;
+  background:var(--border);
+}
+
+/* ══ HEADER ════════════════════════════════════════ */
+.hdr{
+  grid-column:1/3;background:var(--surface);
+  display:flex;align-items:center;padding:0 16px;gap:12px;
+}
+.hdr-title{font-family:var(--sans);font-weight:600;font-size:12px;letter-spacing:4px;color:var(--cyan);text-transform:uppercase;}
+.hdr-sub{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1px;}
+.hdr-spacer{flex:1;}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);transition:background .3s,box-shadow .3s;flex-shrink:0;}
+.status-dot.live{background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.status-text{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.hdr-btn{
+  background:transparent;border:1px solid var(--border2);border-radius:4px;
+  color:var(--muted);font-family:var(--mono);font-size:8px;letter-spacing:1.5px;
+  padding:4px 10px;cursor:pointer;transition:all .2s;text-transform:uppercase;
+}
+.hdr-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+.hdr-btn.gold{border-color:rgba(212,168,75,.3);color:var(--gold);}
+.hdr-btn.gold:hover{border-color:var(--gold);background:rgba(212,168,75,.06);}
+.mob-menu-btn{display:none;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--cyan);font-size:12px;padding:5px 10px;cursor:pointer;font-family:var(--mono);}
+
+/* ══ LANGUAGE SELECTOR ══════════════════════════════ */
+.lang-selector{position:relative;display:flex;align-items:center;gap:0;}
+.lang-btn{
+  background:transparent;border:1px solid var(--border2);
+  font-family:var(--mono);font-size:8px;letter-spacing:1.5px;
+  color:var(--muted);cursor:pointer;transition:all .2s;text-transform:uppercase;
+  padding:4px 8px;line-height:1;
+}
+.lang-btn:first-child{border-radius:4px 0 0 4px;border-right:none;}
+.lang-btn:not(:first-child):not(:last-child){border-radius:0;border-right:none;}
+.lang-btn:last-child{border-radius:0 4px 4px 0;}
+.lang-btn.active{border-color:var(--cyan);color:var(--cyan);background:rgba(80,180,200,.08);}
+.lang-btn:hover:not(.active){border-color:rgba(80,180,200,.3);color:var(--text);}
+
+/* ══ LEFT COLUMN: PRESETS ══════════════════════════ */
+.col-left{
+  grid-column:1;grid-row:2;
+  background:var(--surface);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+
+/* ── Preset/Controls tab switcher ── */
+.left-tabs{
+  display:flex;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.left-tab{
+  flex:1;padding:9px 6px;text-align:center;
+  font-family:var(--mono);font-size:8px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--muted);cursor:pointer;
+  border-bottom:2px solid transparent;transition:all .2s;
+}
+.left-tab.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.left-tab:hover{color:var(--text);}
+
+/* ── Left panel scrollable body ── */
+.left-body{flex:1;overflow-y:auto;padding:10px 8px;}
+.left-body::-webkit-scrollbar{width:2px;}
+.left-body::-webkit-scrollbar-thumb{background:var(--muted);}
+
+/* ── PRESET TAB ── */
+.preset-section-hdr{
+  font-family:var(--mono);font-size:7px;letter-spacing:3px;
+  color:var(--muted);text-transform:uppercase;
+  padding:10px 4px 6px;opacity:.6;
+}
+.preset-section-hdr:first-child{padding-top:4px;}
+
+.preset-card{
+  border:1px solid var(--border);border-radius:var(--r);
+  padding:9px 11px;cursor:pointer;transition:all .2s;
+  position:relative;overflow:hidden;background:transparent;
+  margin-bottom:4px;
+}
+.preset-card::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;
+  width:2px;border-radius:2px 0 0 2px;
+}
+.preset-card:hover{border-color:rgba(80,180,200,.3);background:rgba(80,180,200,.03);}
+.preset-card.active{border-color:rgba(80,180,200,.5);background:rgba(80,180,200,.07);}
+
+/* Band colors */
+.preset-card[data-band="delta"]::before   {background:#9b7de8;}
+.preset-card[data-band="theta"]::before   {background:#4488cc;}
+.preset-card[data-band="schumann"]::before{background:#4ecb8a;}
+.preset-card[data-band="alpha"]::before   {background:#50b4c8;}
+.preset-card[data-band="beta"]::before    {background:#d4a84b;}
+.preset-card[data-band="gamma"]::before   {background:#e05555;}
+.preset-card[data-band="gamma40"]::before {background:#ff6b6b;}
+
+/* Active border per band */
+.preset-card.active[data-band="delta"]   {border-color:rgba(155,125,232,.5);}
+.preset-card.active[data-band="theta"]   {border-color:rgba(68,136,204,.5);}
+.preset-card.active[data-band="schumann"]{border-color:rgba(78,203,138,.5);}
+.preset-card.active[data-band="alpha"]   {border-color:rgba(80,180,200,.5);}
+.preset-card.active[data-band="beta"]    {border-color:rgba(212,168,75,.5);}
+.preset-card.active[data-band="gamma"]   {border-color:rgba(224,85,85,.5);}
+.preset-card.active[data-band="gamma40"] {border-color:rgba(255,107,107,.5);}
+
+.pc-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:2px;}
+.pc-band{font-family:var(--mono);font-size:7px;letter-spacing:2px;text-transform:uppercase;opacity:.75;}
+.pc-hz{font-family:var(--mono);font-size:7px;color:var(--muted);}
+.pc-benefit{font-family:var(--sans);font-weight:600;font-size:11px;color:#c8dde8;line-height:1.2;margin-bottom:4px;}
+.pc-params{display:flex;gap:4px;flex-wrap:wrap;}
+.pc-tag{font-family:var(--mono);font-size:6.5px;padding:2px 5px;border-radius:3px;background:rgba(80,180,200,.08);color:var(--cyan);}
+.pc-tag.ret{background:rgba(212,168,75,.08);color:var(--gold);}  /* retention tag */
+.pc-info{
+  position:absolute;top:7px;right:7px;width:14px;height:14px;border-radius:50%;
+  border:1px solid var(--border);background:transparent;
+  font-family:var(--mono);font-size:8px;color:var(--muted);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;line-height:1;
+}
+.pc-info:hover{border-color:var(--cyan);color:var(--cyan);}
+
+/* ── CONTROLS TAB (inline, no 2nd click needed) ── */
+.ctrl-panel{display:none;flex-direction:column;gap:12px;padding:8px 4px;}
+.ctrl-panel.visible{display:flex;}
+
+.ctrl-group{display:flex;flex-direction:column;gap:8px;}
+.ctrl-hdr{
+  font-family:var(--mono);font-size:7px;letter-spacing:3px;
+  color:var(--muted);text-transform:uppercase;
+  padding-bottom:5px;border-bottom:1px solid var(--border);
+}
+.sl-row{display:flex;flex-direction:column;gap:3px;}
+.sl-top{display:flex;justify-content:space-between;align-items:baseline;}
+.sl-name{font-family:var(--mono);font-size:8px;color:var(--muted);}
+.sl-val{font-family:var(--mono);font-size:10px;color:var(--cyan);}
+
+input[type=range]{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:1px;
+  background:linear-gradient(90deg,var(--cyan) var(--fill,50%),var(--muted) var(--fill,50%));
+  outline:none;cursor:pointer;border-radius:1px;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:10px;height:10px;border-radius:50%;
+  background:var(--cyan);box-shadow:0 0 6px rgba(80,180,200,.6);cursor:pointer;
+}
+
+.tog-row{display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0;}
+.tog-track{width:28px;height:14px;border-radius:7px;background:var(--muted);position:relative;transition:background .25s;flex-shrink:0;}
+.tog-track.on{background:rgba(80,180,200,.4);}
+.tog-thumb{position:absolute;width:10px;height:10px;border-radius:50%;background:#aac;top:2px;left:2px;transition:left .25s,background .25s;}
+.tog-track.on .tog-thumb{left:16px;background:var(--cyan);}
+.tog-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;}
+.tog-sub{font-family:var(--mono);font-size:7px;color:var(--muted);opacity:.5;margin-left:auto;}
+.ctrl-div{height:1px;background:var(--border);}
+
+/* ══ CENTER COLUMN ═════════════════════════════════ */
+.col-center{
+  grid-column:2;grid-row:2;
+  background:var(--surface);
+  display:flex;flex-direction:column;
+  align-items:center;padding:12px 16px;gap:8px;overflow:hidden;
+}
+
+/* ── ORB zone ── */
+.orb-zone{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;}
+.orb-wrap{position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center;}
+.orb-ring{position:absolute;border-radius:50%;border:1px solid var(--border);}
+.orb-ring:nth-child(1){width:120px;height:120px;}
+.orb-ring:nth-child(2){width:90px;height:90px;border-color:rgba(80,180,200,.06);}
+.orb-ripple{position:absolute;width:68px;height:68px;border-radius:50%;border:1px solid rgba(80,180,200,.5);pointer-events:none;}
+@keyframes orbRipple{0%{transform:scale(1);opacity:.7}100%{transform:scale(2.6);opacity:0}}
+.orb-ripple.go{animation:orbRipple 1s ease-out forwards;}
+
+.orb{
+  position:relative;z-index:2;width:68px;height:68px;border-radius:50%;
+  background:radial-gradient(circle at 32% 32%,rgba(80,180,200,.18),rgba(80,180,200,.02));
+  border:1px solid rgba(80,180,200,.25);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:transform .4s,box-shadow .4s,border-color .4s,background .4s;
+}
+/* Retention phase orb styles */
+.orb.hold-full{
+  background:radial-gradient(circle at 32% 32%,rgba(212,168,75,.25),rgba(212,168,75,.04));
+  border-color:rgba(212,168,75,.6) !important;
+  box-shadow:0 0 30px rgba(212,168,75,.35) !important;
+}
+.orb.hold-empty{
+  background:radial-gradient(circle at 32% 32%,rgba(155,125,232,.25),rgba(155,125,232,.04));
+  border-color:rgba(155,125,232,.6) !important;
+  box-shadow:0 0 30px rgba(155,125,232,.35) !important;
+}
+.orb-lbl{font-family:var(--mono);font-size:7px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;}
+.orb-sec{font-family:var(--mono);font-size:18px;color:#c8dde8;line-height:1;}
+
+/* Breath progress bar */
+.breath-bar-wrap{width:140px;height:2px;background:var(--muted);border-radius:2px;overflow:hidden;}
+.breath-bar{height:100%;width:0%;border-radius:2px;transition:none;}
+
+/* Phase sub-info (cycle count, technique name) */
+.phase-row{display:flex;align-items:center;gap:10px;justify-content:center;}
+.phase-txt{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--muted);min-height:12px;}
+.phase-cycle{font-family:var(--mono);font-size:8px;color:var(--muted);opacity:.5;}
+
+/* Wim Hof round counter */
+.wh-row{display:none;align-items:center;gap:8px;justify-content:center;}
+.wh-row.visible{display:flex;}
+.wh-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--muted);transition:background .3s;
+}
+.wh-dot.done{background:var(--cyan);}
+.wh-dot.current{background:var(--gold);box-shadow:0 0 6px var(--gold);}
+.wh-lbl{font-family:var(--mono);font-size:7px;color:var(--muted);letter-spacing:1px;}
+
+/* ── VIZ zone ── */
+.wave-zone{flex:1;width:100%;display:flex;flex-direction:column;gap:5px;min-height:0;}
+.wave-hdr{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.wave-title{font-family:var(--mono);font-size:7px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;}
+.interference-pill{
+  font-family:var(--mono);font-size:7px;letter-spacing:1.5px;
+  padding:2px 8px;border-radius:10px;text-transform:uppercase;transition:all .5s;
+}
+.ip-amp   {color:var(--green);border:1px solid rgba(78,203,138,.4);background:rgba(78,203,138,.07);}
+.ip-mod   {color:var(--gold); border:1px solid rgba(212,168,75,.4);background:rgba(212,168,75,.07);}
+.ip-cancel{color:var(--red);  border:1px solid rgba(224,85,85,.4); background:rgba(224,85,85,.07);}
+
+.viz-selector{display:flex;gap:3px;flex-wrap:wrap;flex-shrink:0;}
+.viz-btn{
+  font-family:var(--mono);font-size:7px;letter-spacing:.5px;text-transform:uppercase;
+  padding:3px 7px;border-radius:3px;cursor:pointer;
+  border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .2s;
+}
+.viz-btn:hover{border-color:rgba(80,180,200,.3);color:var(--cyan);}
+.viz-btn.active{border-color:rgba(80,180,200,.6);background:rgba(80,180,200,.08);color:var(--cyan);}
+
+.viz-container{flex:1;width:100%;display:flex;gap:4px;min-height:0;}
+.viz-canvas{display:block;border-radius:3px;min-height:0;}
+.viz-left{width:42%;height:100%;}
+.viz-right{flex:1;height:100%;}
+.viz-full{width:100%;height:100%;}
+
+.wave-legend{display:flex;gap:9px;flex-wrap:wrap;flex-shrink:0;}
+.wl-item{display:flex;align-items:center;gap:4px;}
+.wl-line{width:14px;height:1px;}
+.wl-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.wl-txt{font-family:var(--mono);font-size:7px;color:var(--muted);}
+
+/* ══ BOTTOM BAR ════════════════════════════════════ */
+.bottom-bar{
+  grid-column:1/3;grid-row:3;
+  background:var(--surface);
+  display:flex;align-items:center;padding:0 20px;gap:20px;
+}
+.stat-block{text-align:center;min-width:40px;}
+.stat-n{font-family:var(--mono);font-size:17px;color:var(--cyan);display:block;line-height:1;}
+.stat-l{font-family:var(--mono);font-size:7px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-top:3px;display:block;}
+.bottom-spacer{flex:1;}
+.hz-readout{font-family:var(--mono);font-size:9px;color:var(--muted);display:flex;flex-direction:column;gap:2px;text-align:right;letter-spacing:.5px;}
+.hz-readout span{color:var(--cyan);}
+.play-btn{
+  width:46px;height:46px;border-radius:50%;
+  border:1px solid rgba(80,180,200,.35);background:transparent;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;color:var(--cyan);transition:all .3s;flex-shrink:0;
+}
+.play-btn:hover{box-shadow:0 0 18px rgba(80,180,200,.25);border-color:var(--cyan);}
+.play-btn.on{border-color:var(--gold);color:var(--gold);box-shadow:0 0 18px rgba(212,168,75,.2);}
+
+/* ══ WIZARD OVERLAY ════════════════════════════════ */
+.wizard-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(6,10,16,.85);z-index:9000;
+  align-items:center;justify-content:center;padding:16px;
+}
+.wizard-overlay.open{display:flex;}
+.wizard-panel{
+  background:#0d1b2a;border:1px solid rgba(80,180,200,.25);border-radius:12px;
+  width:100%;max-width:460px;max-height:90vh;overflow:hidden;
+  display:flex;flex-direction:column;position:relative;z-index:9001;
+  box-shadow:0 0 60px rgba(0,0,0,.8);
+}
+.wiz-header{
+  padding:14px 18px 11px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+}
+.wiz-band-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.wiz-title{font-family:var(--sans);font-weight:600;font-size:14px;color:#c8dde8;flex:1;}
+.wiz-close{
+  background:transparent;border:1px solid var(--border);border-radius:4px;
+  color:var(--muted);font-size:13px;cursor:pointer;padding:2px 8px;
+  transition:all .2s;line-height:1.4;
+}
+.wiz-close:hover{border-color:var(--red);color:var(--red);}
+.wiz-body{padding:0 18px 18px;overflow-y:auto;flex:1;}
+.wiz-body::-webkit-scrollbar{width:2px;}
+.wiz-body::-webkit-scrollbar-thumb{background:var(--muted);}
+.wiz-steps{display:flex;gap:4px;padding:12px 0 8px;flex-shrink:0;}
+.wiz-step-dot{height:2px;flex:1;border-radius:2px;background:var(--muted);transition:background .3s;cursor:pointer;}
+.wiz-step-dot.active{background:var(--cyan);}
+.wiz-step-dot.done{background:rgba(80,180,200,.4);}
+.wiz-step{display:none;}
+.wiz-step.active{display:block;}
+.wiz-step-label{font-family:var(--mono);font-size:7.5px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:7px;}
+.wiz-step-title{font-family:var(--sans);font-weight:600;font-size:12px;color:#c8dde8;margin-bottom:9px;}
+.wiz-step-body{font-family:var(--mono);font-size:9.5px;line-height:1.8;color:var(--text);}
+.wiz-step-body strong{color:var(--cyan);}
+.wiz-step-body em{color:var(--gold);font-style:normal;}
+.wiz-range-table{margin:9px 0;border:1px solid var(--border);border-radius:5px;overflow:hidden;}
+.wiz-range-row{display:grid;grid-template-columns:80px 1fr;border-bottom:1px solid var(--border);}
+.wiz-range-row:last-child{border-bottom:none;}
+.wiz-range-row.highlight{background:rgba(80,180,200,.05);}
+.wiz-range-hz{font-family:var(--mono);font-size:8px;color:var(--cyan);padding:6px 9px;border-right:1px solid var(--border);display:flex;align-items:center;}
+.wiz-range-desc{font-family:var(--mono);font-size:7.5px;color:var(--text);padding:6px 9px;line-height:1.5;}
+.wiz-tip{
+  background:rgba(212,168,75,.05);border:1px solid rgba(212,168,75,.2);
+  border-radius:5px;padding:9px 11px;font-family:var(--mono);font-size:8.5px;line-height:1.7;
+  color:var(--gold);margin:9px 0;
+}
+.wiz-tip-label{font-size:7px;letter-spacing:2px;text-transform:uppercase;opacity:.7;margin-bottom:3px;}
+.wiz-nav{display:flex;gap:7px;padding:11px 0 0;}
+.wiz-nav-btn{
+  font-family:var(--mono);font-size:9px;letter-spacing:1px;
+  padding:7px 14px;border-radius:4px;cursor:pointer;
+  border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .2s;
+}
+.wiz-nav-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+.wiz-nav-btn.primary{border-color:rgba(80,180,200,.4);color:var(--cyan);}
+.wiz-nav-btn.primary:hover{background:rgba(80,180,200,.08);}
+.wiz-apply-btn{
+  font-family:var(--mono);font-size:9px;letter-spacing:1px;
+  padding:7px 14px;border-radius:4px;cursor:pointer;margin-left:auto;
+  border:1px solid rgba(78,203,138,.4);background:rgba(78,203,138,.06);
+  color:var(--green);transition:all .2s;
+}
+.wiz-apply-btn:hover{background:rgba(78,203,138,.12);}
+
+/* ══ BIBLIOGRAPHY OVERLAY ══════════════════════════ */
+.bib-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(6,10,16,.9);z-index:9100;
+  align-items:center;justify-content:center;padding:16px;
+}
+.bib-overlay.open{display:flex;}
+.bib-panel{
+  background:#080f1c;border:1px solid rgba(212,168,75,.2);border-radius:12px;
+  width:100%;max-width:640px;max-height:88vh;overflow:hidden;
+  display:flex;flex-direction:column;box-shadow:0 0 80px rgba(0,0,0,.9);
+}
+.bib-header{
+  padding:14px 18px 12px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.bib-header-left{display:flex;align-items:center;gap:9px;}
+.bib-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.bib-title{font-family:var(--sans);font-weight:600;font-size:13px;color:#c8dde8;}
+.bib-sub{font-family:var(--mono);font-size:7.5px;color:var(--muted);letter-spacing:1px;margin-left:4px;}
+.bib-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;}
+.bib-tabs::-webkit-scrollbar{height:2px;}
+.bib-tabs::-webkit-scrollbar-thumb{background:var(--muted);}
+.bib-tab{
+  padding:9px 14px;font-family:var(--mono);font-size:7.5px;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--muted);cursor:pointer;white-space:nowrap;
+  border-bottom:2px solid transparent;transition:all .2s;flex-shrink:0;
+}
+.bib-tab:hover{color:var(--gold);}
+.bib-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.bib-body{overflow-y:auto;flex:1;padding:18px;}
+.bib-body::-webkit-scrollbar{width:2px;}
+.bib-body::-webkit-scrollbar-thumb{background:var(--muted);}
+.bib-section{display:none;}
+.bib-section.active{display:block;}
+.bib-intro{
+  font-family:var(--mono);font-size:9.5px;line-height:1.85;color:var(--text);
+  border-left:2px solid rgba(212,168,75,.3);padding-left:11px;margin-bottom:16px;
+}
+.bib-finding{border:1px solid var(--border);border-radius:7px;padding:12px 13px;margin-bottom:9px;transition:border-color .2s;}
+.bib-finding:hover{border-color:rgba(212,168,75,.2);}
+.bib-finding-badge{
+  display:inline-block;font-family:var(--mono);font-size:7px;letter-spacing:1px;
+  padding:3px 7px;border-radius:4px;border:1px solid;text-transform:uppercase;margin-bottom:7px;
+}
+.bib-finding-text{font-family:var(--mono);font-size:9px;line-height:1.8;color:var(--text);}
+.bib-refs{margin-top:20px;padding-top:14px;border-top:1px solid var(--border);}
+.bib-ref-title{font-family:var(--mono);font-size:7px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;}
+.bib-ref{font-family:var(--mono);font-size:8px;line-height:1.75;color:var(--muted);margin-bottom:6px;padding-left:7px;border-left:1px solid rgba(212,168,75,.15);}
+.bib-ref em{color:var(--gold);font-style:normal;}
+.bib-footer{padding:11px 18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.bib-footer-note{flex:1;font-family:var(--mono);font-size:7.5px;color:var(--muted);line-height:1.5;}
+
+/* ══ MOBILE BOTTOM SHEET ════════════════════════════ */
+.mob-sheet{
+  display:none;position:fixed;bottom:0;left:0;right:0;
+  background:#0d1b2a;border-top:1px solid rgba(80,180,200,.2);
+  border-radius:14px 14px 0 0;z-index:8000;max-height:70vh;
+  flex-direction:column;transform:translateY(100%);
+  transition:transform .35s cubic-bezier(.4,0,.2,1);
+}
+.mob-sheet.open{transform:translateY(0);}
+.mob-sheet-handle{width:36px;height:3px;border-radius:2px;background:var(--muted);margin:10px auto 6px;flex-shrink:0;cursor:pointer;}
+.mob-sheet-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.mob-tab{flex:1;padding:8px;text-align:center;font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;}
+.mob-tab.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.mob-sheet-body{overflow-y:auto;flex:1;padding:10px;}
+.mob-sheet-body::-webkit-scrollbar{width:2px;}
+.mob-sheet-body::-webkit-scrollbar-thumb{background:var(--muted);}
+
+/* ══ SCROLLBAR GLOBAL ═══════════════════════════════ */
+::-webkit-scrollbar{width:2px;}
+::-webkit-scrollbar-thumb{background:var(--muted);}
+
+/* ══ MOBILE ════════════════════════════════════════ */
+@media(max-width:700px){
+  html,body{overflow:hidden;height:100%;}
+  .shell{grid-template-columns:1fr;grid-template-rows:44px 1fr 68px;height:100vh;}
+  .hdr{grid-column:1;grid-row:1;padding:0 12px;gap:8px;}
+  .hdr-sub{display:none;}
+  .mob-menu-btn{display:flex;align-items:center;gap:5px;}
+  .col-left{display:none;}
+  .col-center{grid-column:1;grid-row:2;padding:8px 12px 5px;gap:5px;}
+  .bottom-bar{grid-column:1;grid-row:3;padding:0 12px;gap:10px;}
+  .stat-block{min-width:30px;}
+  .stat-n{font-size:14px;}
+  .hz-readout{display:none;}
+  .orb-wrap{width:100px;height:100px;}
+  .orb-ring:nth-child(1){width:100px;height:100px;}
+  .orb-ring:nth-child(2){width:76px;height:76px;}
+  .orb-ripple{width:58px;height:58px;}
+  .orb{width:58px;height:58px;}
+  .orb-sec{font-size:15px;}
+  .mob-sheet{display:flex;}
+  .play-btn{width:40px;height:40px;font-size:13px;}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ══ HEADER ════════════════════════════════════════ -->
+<header class="hdr">
+  <div class="hdr-title">Coherencia</div>
+  <div class="hdr-sub" data-i18n="headerSub">Neuro·Cardíaca v7</div>
+  <div class="hdr-spacer"></div>
+  <div class="lang-selector" id="langSelector">
+    <button class="lang-btn active" onclick="setLang('es')">ES</button>
+    <button class="lang-btn" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" onclick="setLang('fr')">FR</button>
+    <button class="lang-btn" onclick="setLang('pt')">PT</button>
+  </div>
+  <button class="mob-menu-btn" onclick="openMobSheet('presets')" data-i18n="mobMenuBtn">☰ Presets</button>
+  <button class="hdr-btn gold" onclick="openBib()" data-i18n="scienceBtn">∂ Ciencia</button>
+  <div class="status-dot" id="statusDot"></div>
+  <div class="status-text" id="statusTxt" data-i18n="statusInactive">inactivo</div>
+</header>
+
+<!-- ══ LEFT: PRESETS + CONTROLS IN TABS ═══════════════ -->
+<aside class="col-left" id="colLeft">
+  <div class="left-tabs">
+    <div class="left-tab active" id="tabPrograms" onclick="switchLeftTab('programs')" data-i18n="tabPrograms">Programas</div>
+    <div class="left-tab" id="tabControls"  onclick="switchLeftTab('controls')" data-i18n="tabControls">Controles</div>
+  </div>
+  <div class="left-body" id="leftBody">
+
+    <!-- ── PRESET PANEL (default visible) ── -->
+    <div id="presetsPanel">
+
+      <!-- BINAURAL section -->
+      <div class="preset-section-hdr" data-i18n="sectionBinaural">Binaural</div>
+
+      <div class="preset-card active" data-band="delta"
+           data-beat="2.5" data-carrier="200" data-bpm="3" data-ratio="1.0"
+           data-breath="coherencia" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#9b7de8">Delta</span><span class="pc-hz">2.5 Hz</span></div>
+        <div class="pc-benefit" data-i18n="presetDeltaBenefit">Sueño Profundo</div>
+        <div class="pc-params"><span class="pc-tag">200 Hz</span><span class="pc-tag">3 rpm</span></div>
+        <button class="pc-info" onclick="openWizard('delta');event.stopPropagation()">?</button>
+      </div>
+
+      <div class="preset-card" data-band="theta"
+           data-beat="6" data-carrier="200" data-bpm="4" data-ratio="1.0"
+           data-breath="coherencia" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#4488cc">Theta</span><span class="pc-hz">6 Hz</span></div>
+        <div class="pc-benefit" data-i18n="presetThetaBenefit">Meditación Profunda</div>
+        <div class="pc-params"><span class="pc-tag">200 Hz</span><span class="pc-tag">4 rpm</span></div>
+        <button class="pc-info" onclick="openWizard('theta');event.stopPropagation()">?</button>
+      </div>
+
+      <div class="preset-card" data-band="schumann"
+           data-beat="7.83" data-carrier="200" data-bpm="4" data-ratio="1.0"
+           data-breath="coherencia" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#4ecb8a">Schumann</span><span class="pc-hz">7.83 Hz</span></div>
+        <div class="pc-benefit" data-i18n="presetSchumannBenefit">Resonancia Terrestre</div>
+        <div class="pc-params"><span class="pc-tag">200 Hz</span><span class="pc-tag">4 rpm</span></div>
+        <button class="pc-info" onclick="openWizard('schumann');event.stopPropagation()">?</button>
+      </div>
+
+      <div class="preset-card" data-band="alpha"
+           data-beat="10" data-carrier="250" data-bpm="6" data-ratio="1.0"
+           data-breath="coherencia" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#50b4c8">Alpha</span><span class="pc-hz">10 Hz</span></div>
+        <div class="pc-benefit" data-i18n="presetAlpha10Benefit">Coherencia Cardíaca</div>
+        <div class="pc-params"><span class="pc-tag">250 Hz</span><span class="pc-tag">6 rpm</span></div>
+        <button class="pc-info" onclick="openWizard('alpha');event.stopPropagation()">?</button>
+      </div>
+
+      <div class="preset-card" data-band="alpha"
+           data-beat="8" data-carrier="300" data-bpm="6" data-ratio="1.0"
+           data-breath="coherencia" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#50b4c8">Alpha</span><span class="pc-hz">8 Hz</span></div>
+        <div class="pc-benefit" data-i18n="presetAlpha8Benefit">Creatividad &amp; Flujo</div>
+        <div class="pc-params"><span class="pc-tag">300 Hz</span><span class="pc-tag">6 rpm</span></div>
+        <button class="pc-info" onclick="openWizard('alpha');event.stopPropagation()">?</button>
+      </div>
+
+      <div class="preset-card" data-band="beta"
+           data-beat="16" data-carrier="400" data-bpm="8" data-ratio="0.7"
+           data-breath="box" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#d4a84b">Beta</span><span class="pc-hz">16 Hz</span></div>
+        <div class="pc-benefit" data-i18n="presetBetaBenefit">Foco &amp; Productividad</div>
+        <div class="pc-params"><span class="pc-tag">400 Hz</span><span class="pc-tag">Box 4-4-4-4</span></div>
+        <button class="pc-info" onclick="openWizard('beta');event.stopPropagation()">?</button>
+      </div>
+
+      <div class="preset-card" data-band="gamma40"
+           data-beat="40" data-carrier="500" data-bpm="10" data-ratio="0.6"
+           data-breath="bhastrika" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#ff6b6b">Gamma</span><span class="pc-hz">40 Hz</span></div>
+        <div class="pc-benefit" data-i18n="presetGamma40Benefit">Protocolo MIT 40 Hz</div>
+        <div class="pc-params"><span class="pc-tag">500 Hz</span><span class="pc-tag">Bhastrika</span></div>
+        <button class="pc-info" onclick="openWizard('gamma40');event.stopPropagation()">?</button>
+      </div>
+
+      <div class="preset-card" data-band="gamma"
+           data-beat="25" data-carrier="450" data-bpm="8" data-ratio="0.7"
+           data-breath="box" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#e05555">Gamma</span><span class="pc-hz">25 Hz</span></div>
+        <div class="pc-benefit" data-i18n="presetGamma25Benefit">Procesamiento Cognitivo</div>
+        <div class="pc-params"><span class="pc-tag">450 Hz</span><span class="pc-tag">8 rpm</span></div>
+        <button class="pc-info" onclick="openWizard('gamma');event.stopPropagation()">?</button>
+      </div>
+
+      <!-- PRANAYAMA section -->
+      <div class="preset-section-hdr" data-i18n="sectionPranayama">Pranayama &amp; Retención</div>
+
+      <div class="preset-card" data-band="alpha"
+           data-beat="8" data-carrier="250" data-bpm="6" data-ratio="1.0"
+           data-breath="nadi" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#4ecb8a">Nadi Shodhana</span><span class="pc-hz" data-i18n="presetNadiHz">Alterna</span></div>
+        <div class="pc-benefit" data-i18n="presetNadiBenefit">Equilibrio Hemisférico</div>
+        <div class="pc-params"><span class="pc-tag">8 Hz beat</span><span class="pc-tag">4-0-4-0</span></div>
+        <button class="pc-info" onclick="openWizard('nadi');event.stopPropagation()">?</button>
+      </div>
+
+      <div class="preset-card" data-band="theta"
+           data-beat="6" data-carrier="200" data-bpm="4" data-ratio="1.33"
+           data-breath="478" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#9b7de8">4-7-8</span><span class="pc-hz" data-i18n="preset478Hz">Relajación</span></div>
+        <div class="pc-benefit" data-i18n="preset478Benefit">Activación Parasimpática</div>
+        <div class="pc-params"><span class="pc-tag">6 Hz beat</span><span class="pc-tag ret" data-i18n="tagRetFull">Ret. pulmón lleno</span></div>
+        <button class="pc-info" onclick="openWizard('478');event.stopPropagation()">?</button>
+      </div>
+
+      <div class="preset-card" data-band="theta"
+           data-beat="4" data-carrier="200" data-bpm="4" data-ratio="1.0"
+           data-breath="box" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#d4a84b">Box Breathing</span><span class="pc-hz" data-i18n="presetBoxHz">Cuadrado</span></div>
+        <div class="pc-benefit" data-i18n="presetBoxBenefit">Equilibrio SNA</div>
+        <div class="pc-params"><span class="pc-tag">4 Hz beat</span><span class="pc-tag ret">4-4-4-4</span></div>
+        <button class="pc-info" onclick="openWizard('box');event.stopPropagation()">?</button>
+      </div>
+
+      <div class="preset-card" data-band="theta"
+           data-beat="6" data-carrier="200" data-bpm="3" data-ratio="1.0"
+           data-breath="dispenza" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#9b7de8">Dispenza / Maha Bandha</span><span class="pc-hz">LCR</span></div>
+        <div class="pc-benefit" data-i18n="presetDispenzaBenefit">Activación Pineal</div>
+        <div class="pc-params"><span class="pc-tag">6 Hz beat</span><span class="pc-tag ret" data-i18n="tagRetEmpty">Ret. pulmón vacío</span></div>
+        <button class="pc-info" onclick="openWizard('dispenza');event.stopPropagation()">?</button>
+      </div>
+
+      <div class="preset-card" data-band="gamma"
+           data-beat="20" data-carrier="400" data-bpm="30" data-ratio="0.1"
+           data-breath="wimhof" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#e8a020">Wim Hof</span><span class="pc-hz" data-i18n="presetWimHofHz">Hiperventilatoria</span></div>
+        <div class="pc-benefit" data-i18n="presetWimHofBenefit">Activación Sistema Simpático</div>
+        <div class="pc-params"><span class="pc-tag">20 Hz beat</span><span class="pc-tag ret" data-i18n="tagWimHofRet">30 resp + retención</span></div>
+        <button class="pc-info" onclick="openWizard('wimhof');event.stopPropagation()">?</button>
+      </div>
+
+    </div><!-- /presetsPanel -->
+
+    <!-- ── CONTROLS PANEL (toggled by tab) ── -->
+    <div class="ctrl-panel" id="ctrlPanel">
+
+      <div class="ctrl-group">
+        <div class="ctrl-hdr" data-i18n="ctrlBreath">Respiración</div>
+        <div class="sl-row">
+          <div class="sl-top"><span class="sl-name" data-i18n="ctrlBpm">Resp/min</span><span class="sl-val" id="vBpm">6.0</span></div>
+          <input type="range" id="sBpm" min="2" max="40" step="0.5" value="6">
+        </div>
+        <div class="sl-row">
+          <div class="sl-top"><span class="sl-name" data-i18n="ctrlRatio">Ratio i:e</span><span class="sl-val" id="vRatio">1:1</span></div>
+          <input type="range" id="sRatio" min="0.1" max="3.0" step="0.1" value="1.0">
+        </div>
+        <div class="sl-row">
+          <div class="sl-top"><span class="sl-name" data-i18n="ctrlHoldFull">Ret. lleno (s)</span><span class="sl-val" id="vHoldFull">0s</span></div>
+          <input type="range" id="sHoldFull" min="0" max="60" step="1" value="0">
+        </div>
+        <div class="sl-row">
+          <div class="sl-top"><span class="sl-name" data-i18n="ctrlHoldEmpty">Ret. vacío (s)</span><span class="sl-val" id="vHoldEmpty">0s</span></div>
+          <input type="range" id="sHoldEmpty" min="0" max="60" step="1" value="0">
+        </div>
+      </div>
+
+      <div class="ctrl-div"></div>
+      <div class="ctrl-group">
+        <div class="ctrl-hdr" data-i18n="ctrlBinaural">Binaural</div>
+        <div class="sl-row">
+          <div class="sl-top"><span class="sl-name" data-i18n="ctrlCarrier">Portadora</span><span class="sl-val" id="vCarrier">250 Hz</span></div>
+          <input type="range" id="sCarrier" min="100" max="600" step="10" value="250">
+        </div>
+        <div class="sl-row">
+          <div class="sl-top"><span class="sl-name">Beat Hz</span><span class="sl-val" id="vBeat">10.0 Hz</span></div>
+          <input type="range" id="sBeat" min="0.5" max="50" step="0.1" value="10">
+        </div>
+      </div>
+
+      <div class="ctrl-div"></div>
+      <div class="ctrl-group">
+        <div class="ctrl-hdr" data-i18n="ctrlAudio">Audio</div>
+        <div class="sl-row">
+          <div class="sl-top"><span class="sl-name" data-i18n="ctrlVol">Volumen</span><span class="sl-val" id="vVol">60%</span></div>
+          <input type="range" id="sVol" min="0" max="100" value="60">
+        </div>
+        <div class="tog-row" onclick="tog('binaural')">
+          <div class="tog-track on" id="tBinaural"><div class="tog-thumb"></div></div>
+          <span class="tog-lbl" data-i18n="togBinaural">Binaural</span>
+        </div>
+        <div class="tog-row" onclick="tog('beep')">
+          <div class="tog-track on" id="tBeep"><div class="tog-thumb"></div></div>
+          <span class="tog-lbl" data-i18n="togBeep">Pitido guía</span>
+        </div>
+        <div class="tog-row" onclick="tog('noise')">
+          <div class="tog-track" id="tNoise"><div class="tog-thumb"></div></div>
+          <span class="tog-lbl" data-i18n="togNoise">Ruido rosa</span>
+          <span class="tog-sub">+ beat</span>
+        </div>
+      </div>
+
+    </div><!-- /ctrlPanel -->
+
+  </div><!-- /left-body -->
+</aside>
+
+<!-- ══ CENTER: ORB + VIZ ════════════════════════════ -->
+<main class="col-center">
+
+  <div class="orb-zone">
+    <div class="orb-wrap">
+      <div class="orb-ring"></div><div class="orb-ring"></div>
+      <div class="orb-ripple" id="orbRipple"></div>
+      <div class="orb" id="orb">
+    <span class="orb-lbl" id="orbLbl" data-i18n="orbReady">listo</span>
+        <span class="orb-sec" id="orbSec">–</span>
+      </div>
+    </div>
+    <div class="breath-bar-wrap"><div class="breath-bar" id="bBar"></div></div>
+    <div class="phase-row">
+      <div class="phase-txt" id="phaseTxt" data-i18n="phaseIdle">Selecciona un preset y presiona ▶</div>
+      <div class="phase-cycle" id="phaseCycle"></div>
+    </div>
+    <!-- Wim Hof round indicators -->
+    <div class="wh-row" id="whRow">
+      <span class="wh-lbl" data-i18n="whRound">Ronda</span>
+      <div class="wh-dot" id="whD0"></div>
+      <div class="wh-dot" id="whD1"></div>
+      <div class="wh-dot" id="whD2"></div>
+      <div class="wh-dot" id="whD3"></div>
+      <span class="wh-lbl" id="whLbl">1 / 4</span>
+    </div>
+  </div>
+
+  <div class="wave-zone">
+    <div class="wave-hdr">
+      <div class="wave-title" id="vizTitle">Lissajous + Spectrum</div>
+      <div class="interference-pill ip-amp" id="intPill">Amplitud máxima</div>
+    </div>
+    <div class="viz-selector">
+      <button class="viz-btn active" data-viz="lissajous"    onclick="setViz('lissajous')">Lissajous</button>
+      <button class="viz-btn"        data-viz="oscilloscope" onclick="setViz('oscilloscope')">Oscilo</button>
+      <button class="viz-btn"        data-viz="spectrum"     onclick="setViz('spectrum')">Spectrum</button>
+      <button class="viz-btn"        data-viz="spectrogram"  onclick="setViz('spectrogram')">Spectro</button>
+      <button class="viz-btn"        data-viz="vectorscope"  onclick="setViz('vectorscope')">Vector</button>
+    </div>
+    <div class="viz-container" id="vizContainer">
+      <canvas id="wcLissajous" class="viz-canvas viz-left"></canvas>
+      <canvas id="wcSpectrum"  class="viz-canvas viz-right"></canvas>
+      <canvas id="wcOscillo"     class="viz-canvas viz-full" style="display:none"></canvas>
+      <canvas id="wcSpectrogram" class="viz-canvas viz-full" style="display:none"></canvas>
+      <canvas id="wcVector"      class="viz-canvas viz-full" style="display:none"></canvas>
+    </div>
+    <div id="legendLissajous" class="wave-legend">
+      <div class="wl-item"><div class="wl-dot" style="background:#50b4c8"></div><span class="wl-txt" data-i18n="legendFigureLR">Figura L/R</span></div>
+      <div class="wl-item"><div class="wl-dot" style="background:#4488cc"></div><span class="wl-txt" data-i18n="legendBarsL">Barras L</span></div>
+      <div class="wl-item"><div class="wl-dot" style="background:#e05555"></div><span class="wl-txt" data-i18n="legendBarsR">Barras R</span></div>
+      <div class="wl-item"><div class="wl-dot" style="background:#d4a84b"></div><span class="wl-txt" data-i18n="legendBeatDelta">Beat Δ</span></div>
+    </div>
+    <div id="legendOscillo" class="wave-legend" style="display:none">
+      <div class="wl-item"><div class="wl-line" style="background:#4488cc"></div><span class="wl-txt" data-i18n="legendChL">Canal L</span></div>
+      <div class="wl-item"><div class="wl-line" style="background:#e05555"></div><span class="wl-txt" data-i18n="legendChR">Canal R</span></div>
+      <div class="wl-item"><div class="wl-line" style="background:#50b4c8;height:2px"></div><span class="wl-txt" data-i18n="legendInterference">Interferencia</span></div>
+      <div class="wl-item"><div class="wl-line" style="background:#d4a84b;border-top:1px dashed #d4a84b;height:0"></div><span class="wl-txt" data-i18n="legendEnvelope">Envolvente</span></div>
+    </div>
+    <div id="legendSpectrum" class="wave-legend" style="display:none">
+      <div class="wl-item"><div class="wl-dot" style="background:#4488cc"></div><span class="wl-txt" data-i18n="legendEnergyL">Energía L</span></div>
+      <div class="wl-item"><div class="wl-dot" style="background:#e05555"></div><span class="wl-txt" data-i18n="legendEnergyR">Energía R</span></div>
+      <div class="wl-item"><div class="wl-dot" style="background:#d4a84b"></div><span class="wl-txt" data-i18n="legendBeatMarker">Marcador beat</span></div>
+    </div>
+    <div id="legendSpectrogram" class="wave-legend" style="display:none">
+      <div class="wl-item"><div class="wl-dot" style="background:#9b7de8"></div><span class="wl-txt" data-i18n="legendLow">Baja</span></div>
+      <div class="wl-item"><div class="wl-dot" style="background:#50b4c8"></div><span class="wl-txt" data-i18n="legendMid">Media</span></div>
+      <div class="wl-item"><div class="wl-dot" style="background:#d4a84b"></div><span class="wl-txt" data-i18n="legendHigh">Alta</span></div>
+      <div class="wl-item"><div class="wl-dot" style="background:#e05555"></div><span class="wl-txt" data-i18n="legendMax">Máxima</span></div>
+    </div>
+    <div id="legendVector" class="wave-legend" style="display:none">
+      <div class="wl-item"><div class="wl-dot" style="background:#50b4c8"></div><span class="wl-txt" data-i18n="legendPhaseLR">Fase L/R</span></div>
+      <div class="wl-item"><span class="wl-txt" style="opacity:.5" data-i18n="legendMonoStereo">Centro=mono · Borde=stereo puro</span></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══ BOTTOM BAR ════════════════════════════════════ -->
+<footer class="bottom-bar">
+  <div class="stat-block">
+    <span class="stat-n" id="sCycles">0</span>
+    <span class="stat-l" data-i18n="statCycles">Ciclos</span>
+  </div>
+  <div class="stat-block">
+    <span class="stat-n" id="sTime">0:00</span>
+    <span class="stat-l" data-i18n="statSession">Sesión</span>
+  </div>
+  <div class="stat-block">
+    <span class="stat-n" id="sBpmStat">6.0</span>
+    <span class="stat-l" data-i18n="statBpm">Resp/min</span>
+  </div>
+  <div class="bottom-spacer"></div>
+  <div class="hz-readout">
+    <div><span data-i18n="readoutLeft">Izq</span> <span id="dL">250</span> Hz · <span data-i18n="readoutRight">Der</span> <span id="dR">260.0</span> Hz</div>
+    <div>Beat <span id="dB">10.0</span> Hz · Carrier <span id="dC">250</span> Hz</div>
+  </div>
+  <button class="play-btn" id="playBtn" onclick="togglePlay()">▶</button>
+</footer>
+
+</div><!-- /shell -->
+
+<!-- ══ WIZARD OVERLAY ════════════════════════════════ -->
+<div class="wizard-overlay" id="wizardOverlay" onclick="handleOverlayClick(event)">
+  <div class="wizard-panel">
+    <div class="wiz-header">
+      <div class="wiz-band-dot" id="wizDot"></div>
+      <div class="wiz-title" id="wizTitle2"></div>
+      <button class="wiz-close" onclick="closeWizard()">✕</button>
+    </div>
+    <div class="wiz-body">
+      <div class="wiz-steps" id="wizStepDots"></div>
+      <div id="wizSteps"></div>
+    </div>
+    <div class="wiz-nav" id="wizNav">
+      <button class="wiz-nav-btn" id="wizPrev" onclick="wizStep(-1)" data-i18n="wizPrev">← Anterior</button>
+      <button class="wiz-nav-btn primary" id="wizNext" onclick="wizStep(1)" data-i18n="wizNext">Siguiente →</button>
+      <button class="wiz-apply-btn" id="wizApply" onclick="wizardApply()" style="display:none" data-i18n="wizApply">Aplicar preset ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BIBLIOGRAPHY OVERLAY ════════════════════════ -->
+<div class="bib-overlay" id="bibOverlay" onclick="handleBibOverlayClick(event)">
+  <div class="bib-panel">
+    <div class="bib-header">
+      <div class="bib-header-left">
+        <div class="bib-dot" style="background:var(--gold)"></div>
+        <div class="bib-title" data-i18n="bibTitle">Base Científica</div>
+        <div class="bib-sub" data-i18n="bibSub">Literatura revisada · 2025–2026</div>
+      </div>
+      <button class="wiz-close" onclick="closeBib()">✕</button>
+    </div>
+    <div class="bib-tabs">
+      <div class="bib-tab active" data-btab="binaural" onclick="switchBibTab(this)" data-i18n="bibTabBinaural">Frecuencias Binaurales</div>
+      <div class="bib-tab" data-btab="pranayama"       onclick="switchBibTab(this)" data-i18n="bibTabPranayama">Pranayama &amp; EEG</div>
+      <div class="bib-tab" data-btab="vago"            onclick="switchBibTab(this)" data-i18n="bibTabVago">Nervio Vago &amp; HRV</div>
+      <div class="bib-tab" data-btab="lcr"             onclick="switchBibTab(this)" data-i18n="bibTabLcr">LCR &amp; Respiración</div>
+    </div>
+    <div class="bib-body">
+      <div class="bib-section active" id="bib-binaural">
+        <div class="bib-intro">Las frecuencias binaurales presentan dos tonos ligeramente distintos — el cerebro percibe la diferencia como un tercer tono de baja frecuencia. La revisión sistemática más reciente señala que los efectos más robustos se observan en ansiedad clínica y coherencia cardíaca, mientras que el arrastre EEG puro sigue siendo inconsistente.</div>
+        <div class="bib-finding">
+          <div class="bib-finding-badge" style="background:rgba(78,203,138,.12);color:var(--green);border-color:rgba(78,203,138,.3)">Meta-análisis · 2025 · 15 RCTs · +1000 pacientes</div>
+          <div class="bib-finding-text">Audio binaural perioperatorio redujo significativamente ansiedad, dolor postoperatorio, presión arterial sistólica y frecuencia cardíaca comparado con controles.</div>
+        </div>
+        <div class="bib-finding">
+          <div class="bib-finding-badge" style="background:rgba(80,180,200,.12);color:var(--cyan);border-color:rgba(80,180,200,.3)">Revisión sistemática · 2023 · PLoS ONE</div>
+          <div class="bib-finding-text">De 14 estudios EEG: 5 confirman arrastre, 8 muestran resultados contradictorios. El obstáculo es la heterogeneidad metodológica, no la ausencia de mecanismo.</div>
+        </div>
+        <div class="bib-finding">
+          <div class="bib-finding-badge" style="background:rgba(255,107,107,.12);color:#ff6b6b;border-color:rgba(255,107,107,.3)">MIT Tsai Lab · 40 Hz · 2016–2023</div>
+          <div class="bib-finding-text">Estimulación multisensorial a 40 Hz reduce placas amiloides en modelos de Alzheimer hasta 40–50%, posiblemente vía sincronización de células gliales y sistema glinfático.</div>
+        </div>
+        <div class="bib-refs">
+          <div class="bib-ref-title">Referencias</div>
+          <div class="bib-ref">[1] Ingendoh et al. (2023). Binaural beats to entrain the brain? <em>PLoS ONE</em>. DOI: 10.1371/journal.pone.0286023</div>
+          <div class="bib-ref">[2] Cooper &amp; Hawk (2025). Parametric investigation of binaural beats. <em>Scientific Reports</em>, 15, 4308.</div>
+          <div class="bib-ref">[3] Iaccarino et al. (2016). Gamma frequency entrainment attenuates amyloid load. <em>Nature</em>, 540, 230–235.</div>
+        </div>
+      </div>
+      <div class="bib-section" id="bib-pranayama">
+        <div class="bib-intro">El pranayama modula el sistema nervioso autónomo, el EEG y el flujo de LCR a través de múltiples mecanismos: estimulación vagal vía barorreceptores, señalización olfativa hacia corteza prefrontal, y variación de presión intracraneal por ciclos respiratorios.</div>
+        <div class="bib-finding">
+          <div class="bib-finding-badge" style="background:rgba(78,203,138,.12);color:var(--green);border-color:rgba(78,203,138,.3)">Harvard/NIMHANS · Asian J Psychiatry · 2026</div>
+          <div class="bib-finding-text">Revisión sistemática confirma que técnicas específicas de pranayama producen efectos equivalentes a neuromodulación transcraneal no invasiva — modulando función autonómica, rendimiento cognitivo y dinámica cerebral.</div>
+        </div>
+        <div class="bib-finding">
+          <div class="bib-finding-badge" style="background:rgba(155,125,232,.12);color:var(--purple);border-color:rgba(155,125,232,.3)">Wim Hof Method · Fisiología</div>
+          <div class="bib-finding-text">La hiperventilación controlada (30 respiraciones profundas) reduce CO₂ (hipocapnia), alcaliniza el pH sanguíneo temporalmente y activa el eje simpático-adrenal. La retención con pulmones vacíos genera un estado de hipoxia-hipercapnia que activa reflejos de supervivencia y libera epinefrina.</div>
+        </div>
+        <div class="bib-finding">
+          <div class="bib-finding-badge" style="background:rgba(212,168,75,.12);color:var(--gold);border-color:rgba(212,168,75,.3)">PMC · 2025 — Respiración lenta y EEG</div>
+          <div class="bib-finding-text">Incluso 2 minutos de respiración lenta aumentan HRV de forma medible. Respiración lenta vs rápida muestra aumentos simultáneos en delta, theta, alpha y beta del EEG — estado integrador dual: calmado pero alerta.</div>
+        </div>
+        <div class="bib-refs">
+          <div class="bib-ref-title">Referencias</div>
+          <div class="bib-ref">[4] Bhargav et al. (2026). Pranayama, an ancient self-directed approach to neuromodulation. <em>Asian J Psychiatry</em>, 115, 104788.</div>
+          <div class="bib-ref">[5] Zaccaro et al. (2022). Neural Correlates of Non-ordinary States in Pranayama Practitioners. <em>Front. Systems Neuroscience</em>.</div>
+          <div class="bib-ref">[6] Luo et al. (2025). Slow breathing EEG analysis. <em>PMC12341363</em>.</div>
+        </div>
+      </div>
+      <div class="bib-section" id="bib-vago">
+        <div class="bib-intro">El nervio vago conecta corazón y cerebro bidireccionalmenete, con más del 80% de fibras aferentes (cuerpo→cerebro). La coherencia cardíaca a 0.1 Hz (6 resp/min) maximiza la señal vagal hacia corteza prefrontal y amígdala — el mecanismo mejor documentado de la aplicación.</div>
+        <div class="bib-finding">
+          <div class="bib-finding-badge" style="background:rgba(78,203,138,.12);color:var(--green);border-color:rgba(78,203,138,.3)">Neuroscience (Elsevier) · Enero 2025</div>
+          <div class="bib-finding-text">La HRV mediada vagalmente es índice de control cognitivo top-down. Mayor vmHRV se asocia con mejor rendimiento en funciones ejecutivas, memoria, atención y lenguaje — convirtiendo la coherencia cardíaca en herramienta de mejora cognitiva.</div>
+        </div>
+        <div class="bib-finding">
+          <div class="bib-finding-badge" style="background:rgba(80,180,200,.12);color:var(--cyan);border-color:rgba(80,180,200,.3)">Spandidos Publications · Jul 2025</div>
+          <div class="bib-finding-text">La RSA (arritmia sinusal respiratoria) a ~0.1 Hz es el estado de coherencia fisiológica que maximiza eficiencia del intercambio gaseoso y resiliencia cardiovascular. Fundamento del preset Alpha 6 rpm.</div>
+        </div>
+        <div class="bib-refs">
+          <div class="bib-ref-title">Referencias</div>
+          <div class="bib-ref">[7] Ferrer-Uris et al. (2025). Brain-heart connection: HRV and cognitive functioning. <em>Neuroscience</em>, 565, 369–376.</div>
+          <div class="bib-ref">[8] McCraty &amp; Shaffer (2015). Heart Rate Variability: New Perspectives. <em>Global Advances in Health and Medicine</em>, 4(1). [HeartMath]</div>
+        </div>
+      </div>
+      <div class="bib-section" id="bib-lcr">
+        <div class="bib-intro">El LCR (líquido cefalorraquídeo) fluye de forma pulsátil sincronizada con la respiración. La respiración consciente es un mecanismo real de modulación del flujo cerebroespinal — no solo metafórico. El sistema glinfático de limpieza cerebral opera principalmente en delta (sueño profundo).</div>
+        <div class="bib-finding">
+          <div class="bib-finding-badge" style="background:rgba(78,203,138,.12);color:var(--green);border-color:rgba(78,203,138,.3)">Oregon Health &amp; Science University · Scientific Reports · 2022</div>
+          <div class="bib-finding-text">MRI en tiempo real demostró que la respiración yóguica modifica de forma inmediata el flujo pulsátil del LCR. Las técnicas de pranayama tienen efecto fisiológico real sobre el SNC.</div>
+        </div>
+        <div class="bib-finding">
+          <div class="bib-finding-badge" style="background:rgba(155,125,232,.12);color:var(--purple);border-color:rgba(155,125,232,.3)">Nedergaard Lab · Sistema Glinfático · 2013–2024</div>
+          <div class="bib-finding-text">El sistema glinfático opera principalmente en sueño delta. Transporta LCR eliminando beta-amiloide y tau. La estimulación 40 Hz puede activarlo parcialmente en vigilia.</div>
+        </div>
+        <div class="bib-refs">
+          <div class="bib-ref-title">Referencias</div>
+          <div class="bib-ref">[9] Yildiz et al. (2022). Yogic breathing impact on pulsatile CSF dynamics. <em>Scientific Reports</em>, 12, 10666.</div>
+          <div class="bib-ref">[10] Iliff et al. (2012). A paravascular pathway facilitates CSF flow. <em>Science Translational Medicine</em>, 4(147).</div>
+        </div>
+      </div>
+    </div>
+    <div class="bib-footer">
+      <div class="bib-footer-note" data-i18n="bibDisclaimer">Herramienta educativa y de bienestar. No constituye diagnóstico médico. Consulta a un profesional ante cualquier condición de salud.</div>
+      <button class="wiz-nav-btn primary" onclick="closeBib()" data-i18n="bibClose">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MOBILE BOTTOM SHEET ═══════════════════════════ -->
+<div class="mob-sheet" id="mobSheet">
+  <div class="mob-sheet-handle" onclick="closeMobSheet()"></div>
+  <div class="mob-sheet-tabs">
+    <div class="mob-tab active" id="mobTabPresets"  onclick="mobSwitchTab('presets')" data-i18n="tabPrograms">Presets</div>
+    <div class="mob-tab"        id="mobTabControls" onclick="mobSwitchTab('controls')" data-i18n="tabControls">Controles</div>
+  </div>
+  <div class="mob-sheet-body" id="mobSheetBody"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ════════════════════════════════════════════════════
+// I18N — Dictionary + engine
+// ════════════════════════════════════════════════════
+const I18N = {
+  es: {
+    // Header
+    headerSub: 'Neuro·Cardíaca v7',
+    mobMenuBtn: '☰ Presets',
+    scienceBtn: '∂ Ciencia',
+    statusInactive: 'inactivo',
+    statusActive: 'activo',
+
+    // Left tabs
+    tabPrograms: 'Programas',
+    tabControls: 'Controles',
+
+    // Preset section headers
+    sectionBinaural: 'Binaural',
+    sectionPranayama: 'Pranayama & Retención',
+
+    // Preset benefits
+    presetDeltaBenefit: 'Sueño Profundo',
+    presetThetaBenefit: 'Meditación Profunda',
+    presetSchumannBenefit: 'Resonancia Terrestre',
+    presetAlpha10Benefit: 'Coherencia Cardíaca',
+    presetAlpha8Benefit: 'Creatividad & Flujo',
+    presetBetaBenefit: 'Foco & Productividad',
+    presetGamma40Benefit: 'Protocolo MIT 40 Hz',
+    presetGamma25Benefit: 'Procesamiento Cognitivo',
+    presetNadiHz: 'Alterna',
+    presetNadiBenefit: 'Equilibrio Hemisférico',
+    preset478Hz: 'Relajación',
+    preset478Benefit: 'Activación Parasimpática',
+    presetBoxHz: 'Cuadrado',
+    presetBoxBenefit: 'Equilibrio SNA',
+    presetDispenzaBenefit: 'Activación Pineal',
+    presetWimHofHz: 'Hiperventilatoria',
+    presetWimHofBenefit: 'Activación Sistema Simpático',
+    tagRetFull: 'Ret. pulmón lleno',
+    tagRetEmpty: 'Ret. pulmón vacío',
+    tagWimHofRet: '30 resp + retención',
+
+    // Controls
+    ctrlBreath: 'Respiración',
+    ctrlBpm: 'Resp/min',
+    ctrlRatio: 'Ratio i:e',
+    ctrlHoldFull: 'Ret. lleno (s)',
+    ctrlHoldEmpty: 'Ret. vacío (s)',
+    ctrlBinaural: 'Binaural',
+    ctrlCarrier: 'Portadora',
+    ctrlAudio: 'Audio',
+    ctrlVol: 'Volumen',
+    togBinaural: 'Binaural',
+    togBeep: 'Pitido guía',
+    togNoise: 'Ruido rosa',
+
+    // Orb / phase labels
+    orbReady: 'listo',
+    phaseIdle: 'Selecciona un preset y presiona ▶',
+    phaseInhale: 'inhala',
+    phaseExhale: 'exhala',
+    phaseHoldFull: 'retén',
+    phaseHoldEmpty: 'vacío',
+    phaseTxtInhale: '↑ inhala',
+    phaseTxtExhale: '↓ exhala',
+    phaseTxtHoldFull: '⏸ retén lleno',
+    phaseTxtHoldEmpty: '⏸ retén vacío',
+    whRound: 'Ronda',
+
+    // Wim Hof dynamic
+    whRetention: '⏸ Retención · toca ▶ para continuar',
+    whRecovery: '↑ Respiración de recuperación',
+    whHold15: '⏸ Retén 15s',
+    whDone: '✓ Wim Hof completado',
+    whOrbRecovery: 'recupera',
+
+    // Bottom bar stats
+    statCycles: 'Ciclos',
+    statSession: 'Sesión',
+    statBpm: 'Resp/min',
+    readoutLeft: 'Izq',
+    readoutRight: 'Der',
+
+    // Visualization
+    vizTitleLissajous: 'Lissajous + Spectrum',
+    vizTitleOscilloscope: 'Osciloscopio — Interferencia en tiempo real',
+    vizTitleSpectrum: 'Analizador de Espectro',
+    vizTitleSpectrogram: 'Spectrograma — Historia de Frecuencias',
+    vizTitleVectorscope: 'Vectorscope — Fase L vs R',
+    intPillAmp: 'Amplitud máxima',
+    intPillMod: 'Modulación',
+    intPillCancel: 'Cancelación',
+    legendFigureLR: 'Figura L/R',
+    legendBarsL: 'Barras L',
+    legendBarsR: 'Barras R',
+    legendBeatDelta: 'Beat Δ',
+    legendChL: 'Canal L',
+    legendChR: 'Canal R',
+    legendInterference: 'Interferencia',
+    legendEnvelope: 'Envolvente',
+    legendEnergyL: 'Energía L',
+    legendEnergyR: 'Energía R',
+    legendBeatMarker: 'Marcador beat',
+    legendLow: 'Baja',
+    legendMid: 'Media',
+    legendHigh: 'Alta',
+    legendMax: 'Máxima',
+    legendPhaseLR: 'Fase L/R',
+    legendMonoStereo: 'Centro=mono · Borde=stereo puro',
+
+    // Wizard
+    wizStep: 'Paso',
+    wizOf: 'de',
+    wizPrev: '← Anterior',
+    wizNext: 'Siguiente →',
+    wizApply: 'Aplicar preset ↗',
+    wizTip: 'Consejo práctico',
+
+    // Bibliography
+    bibTitle: 'Base Científica',
+    bibSub: 'Literatura revisada · 2025–2026',
+    bibTabBinaural: 'Frecuencias Binaurales',
+    bibTabPranayama: 'Pranayama & EEG',
+    bibTabVago: 'Nervio Vago & HRV',
+    bibTabLcr: 'LCR & Respiración',
+    bibDisclaimer: 'Herramienta educativa y de bienestar. No constituye diagnóstico médico. Consulta a un profesional ante cualquier condición de salud.',
+    bibClose: 'Cerrar',
+  },
+
+  en: {
+    headerSub: 'Neuro·Cardiac v7',
+    mobMenuBtn: '☰ Presets',
+    scienceBtn: '∂ Science',
+    statusInactive: 'inactive',
+    statusActive: 'active',
+    tabPrograms: 'Programs',
+    tabControls: 'Controls',
+    sectionBinaural: 'Binaural',
+    sectionPranayama: 'Pranayama & Retention',
+    presetDeltaBenefit: 'Deep Sleep',
+    presetThetaBenefit: 'Deep Meditation',
+    presetSchumannBenefit: 'Earth Resonance',
+    presetAlpha10Benefit: 'Cardiac Coherence',
+    presetAlpha8Benefit: 'Creativity & Flow',
+    presetBetaBenefit: 'Focus & Productivity',
+    presetGamma40Benefit: 'MIT 40 Hz Protocol',
+    presetGamma25Benefit: 'Cognitive Processing',
+    presetNadiHz: 'Alternate',
+    presetNadiBenefit: 'Hemispheric Balance',
+    preset478Hz: 'Relaxation',
+    preset478Benefit: 'Parasympathetic Activation',
+    presetBoxHz: 'Square',
+    presetBoxBenefit: 'ANS Balance',
+    presetDispenzaBenefit: 'Pineal Activation',
+    presetWimHofHz: 'Hyperventilatory',
+    presetWimHofBenefit: 'Sympathetic Activation',
+    tagRetFull: 'Full lung hold',
+    tagRetEmpty: 'Empty lung hold',
+    tagWimHofRet: '30 breaths + hold',
+    ctrlBreath: 'Breathing',
+    ctrlBpm: 'Breaths/min',
+    ctrlRatio: 'Ratio i:e',
+    ctrlHoldFull: 'Full hold (s)',
+    ctrlHoldEmpty: 'Empty hold (s)',
+    ctrlBinaural: 'Binaural',
+    ctrlCarrier: 'Carrier',
+    ctrlAudio: 'Audio',
+    ctrlVol: 'Volume',
+    togBinaural: 'Binaural',
+    togBeep: 'Guide beep',
+    togNoise: 'Pink noise',
+    orbReady: 'ready',
+    phaseIdle: 'Select a preset and press ▶',
+    phaseInhale: 'inhale',
+    phaseExhale: 'exhale',
+    phaseHoldFull: 'hold',
+    phaseHoldEmpty: 'empty',
+    phaseTxtInhale: '↑ inhale',
+    phaseTxtExhale: '↓ exhale',
+    phaseTxtHoldFull: '⏸ hold full',
+    phaseTxtHoldEmpty: '⏸ hold empty',
+    whRound: 'Round',
+    whRetention: '⏸ Hold · tap ▶ to continue',
+    whRecovery: '↑ Recovery breath',
+    whHold15: '⏸ Hold 15s',
+    whDone: '✓ Wim Hof complete',
+    whOrbRecovery: 'recover',
+    statCycles: 'Cycles',
+    statSession: 'Session',
+    statBpm: 'Br/min',
+    readoutLeft: 'L',
+    readoutRight: 'R',
+    // Visualization
+    vizTitleLissajous: 'Lissajous + Spectrum',
+    vizTitleOscilloscope: 'Oscilloscope — Real-time Interference',
+    vizTitleSpectrum: 'Spectrum Analyzer',
+    vizTitleSpectrogram: 'Spectrogram — Frequency History',
+    vizTitleVectorscope: 'Vectorscope — L vs R Phase',
+    intPillAmp: 'Max amplitude',
+    intPillMod: 'Modulation',
+    intPillCancel: 'Cancellation',
+    legendFigureLR: 'L/R Figure',
+    legendBarsL: 'L Bars',
+    legendBarsR: 'R Bars',
+    legendBeatDelta: 'Beat Δ',
+    legendChL: 'Ch L',
+    legendChR: 'Ch R',
+    legendInterference: 'Interference',
+    legendEnvelope: 'Envelope',
+    legendEnergyL: 'L Energy',
+    legendEnergyR: 'R Energy',
+    legendBeatMarker: 'Beat marker',
+    legendLow: 'Low',
+    legendMid: 'Mid',
+    legendHigh: 'High',
+    legendMax: 'Peak',
+    legendPhaseLR: 'Phase L/R',
+    legendMonoStereo: 'Center=mono · Edge=pure stereo',
+    wizStep: 'Step',
+    wizOf: 'of',
+    wizPrev: '← Back',
+    wizNext: 'Next →',
+    wizApply: 'Apply preset ↗',
+    wizTip: 'Practical tip',
+    bibTitle: 'Science Base',
+    bibSub: 'Reviewed literature · 2025–2026',
+    bibTabBinaural: 'Binaural Frequencies',
+    bibTabPranayama: 'Pranayama & EEG',
+    bibTabVago: 'Vagus Nerve & HRV',
+    bibTabLcr: 'CSF & Breathing',
+    bibDisclaimer: 'Educational and wellness tool. Not a medical diagnosis. Consult a professional for any health condition.',
+    bibClose: 'Close',
+  },
+
+  fr: {
+    headerSub: 'Neuro·Cardiaque v7',
+    mobMenuBtn: '☰ Préréglages',
+    scienceBtn: '∂ Science',
+    statusInactive: 'inactif',
+    statusActive: 'actif',
+    tabPrograms: 'Programmes',
+    tabControls: 'Contrôles',
+    sectionBinaural: 'Binaural',
+    sectionPranayama: 'Pranayama & Rétention',
+    presetDeltaBenefit: 'Sommeil Profond',
+    presetThetaBenefit: 'Méditation Profonde',
+    presetSchumannBenefit: 'Résonance Terrestre',
+    presetAlpha10Benefit: 'Cohérence Cardiaque',
+    presetAlpha8Benefit: 'Créativité & Flux',
+    presetBetaBenefit: 'Focus & Productivité',
+    presetGamma40Benefit: 'Protocole MIT 40 Hz',
+    presetGamma25Benefit: 'Traitement Cognitif',
+    presetNadiHz: 'Alternée',
+    presetNadiBenefit: 'Équilibre Hémisphérique',
+    preset478Hz: 'Relaxation',
+    preset478Benefit: 'Activation Parasympathique',
+    presetBoxHz: 'Carré',
+    presetBoxBenefit: 'Équilibre SNA',
+    presetDispenzaBenefit: 'Activation Pinéale',
+    presetWimHofHz: 'Hyperventilation',
+    presetWimHofBenefit: 'Activation Sympathique',
+    tagRetFull: 'Poumons pleins',
+    tagRetEmpty: 'Poumons vides',
+    tagWimHofRet: '30 resp + rétention',
+    ctrlBreath: 'Respiration',
+    ctrlBpm: 'Resp/min',
+    ctrlRatio: 'Ratio i:e',
+    ctrlHoldFull: 'Rét. plein (s)',
+    ctrlHoldEmpty: 'Rét. vide (s)',
+    ctrlBinaural: 'Binaural',
+    ctrlCarrier: 'Porteuse',
+    ctrlAudio: 'Audio',
+    ctrlVol: 'Volume',
+    togBinaural: 'Binaural',
+    togBeep: 'Bip guide',
+    togNoise: 'Bruit rose',
+    orbReady: 'prêt',
+    phaseIdle: 'Choisissez un préréglage et appuyez sur ▶',
+    phaseInhale: 'inspir',
+    phaseExhale: 'expir',
+    phaseHoldFull: 'retenir',
+    phaseHoldEmpty: 'vide',
+    phaseTxtInhale: '↑ inspir',
+    phaseTxtExhale: '↓ expir',
+    phaseTxtHoldFull: '⏸ rétention plein',
+    phaseTxtHoldEmpty: '⏸ rétention vide',
+    whRound: 'Tour',
+    whRetention: '⏸ Rétention · appuyer ▶ pour continuer',
+    whRecovery: '↑ Souffle de récupération',
+    whHold15: '⏸ Tenir 15s',
+    whDone: '✓ Wim Hof terminé',
+    whOrbRecovery: 'récup',
+    statCycles: 'Cycles',
+    statSession: 'Session',
+    statBpm: 'Resp/min',
+    readoutLeft: 'G',
+    readoutRight: 'D',
+    // Visualization
+    vizTitleLissajous: 'Lissajous + Spectre',
+    vizTitleOscilloscope: 'Oscilloscope — Interférence en temps réel',
+    vizTitleSpectrum: 'Analyseur de Spectre',
+    vizTitleSpectrogram: 'Spectrogramme — Historique des Fréquences',
+    vizTitleVectorscope: 'Vectorscope — Phase G vs D',
+    intPillAmp: 'Amplitude max',
+    intPillMod: 'Modulation',
+    intPillCancel: 'Annulation',
+    legendFigureLR: 'Figure G/D',
+    legendBarsL: 'Barres G',
+    legendBarsR: 'Barres D',
+    legendBeatDelta: 'Beat Δ',
+    legendChL: 'Canal G',
+    legendChR: 'Canal D',
+    legendInterference: 'Interférence',
+    legendEnvelope: 'Enveloppe',
+    legendEnergyL: 'Énergie G',
+    legendEnergyR: 'Énergie D',
+    legendBeatMarker: 'Marqueur beat',
+    legendLow: 'Bas',
+    legendMid: 'Moyen',
+    legendHigh: 'Haut',
+    legendMax: 'Maximum',
+    legendPhaseLR: 'Phase G/D',
+    legendMonoStereo: 'Centre=mono · Bord=stéréo pur',
+    wizStep: 'Étape',
+    wizOf: 'de',
+    wizPrev: '← Précédent',
+    wizNext: 'Suivant →',
+    wizApply: 'Appliquer ↗',
+    wizTip: 'Conseil pratique',
+    bibTitle: 'Base Scientifique',
+    bibSub: 'Littérature révisée · 2025–2026',
+    bibTabBinaural: 'Fréquences Binaurales',
+    bibTabPranayama: 'Pranayama & EEG',
+    bibTabVago: 'Nerf Vague & HRV',
+    bibTabLcr: 'LCR & Respiration',
+    bibDisclaimer: 'Outil éducatif et de bien-être. Ne constitue pas un diagnostic médical. Consultez un professionnel pour toute condition de santé.',
+    bibClose: 'Fermer',
+  },
+
+  pt: {
+    headerSub: 'Neuro·Cardíaca v7',
+    mobMenuBtn: '☰ Presets',
+    scienceBtn: '∂ Ciência',
+    statusInactive: 'inativo',
+    statusActive: 'ativo',
+    tabPrograms: 'Programas',
+    tabControls: 'Controles',
+    sectionBinaural: 'Binaural',
+    sectionPranayama: 'Pranayama & Retenção',
+    presetDeltaBenefit: 'Sono Profundo',
+    presetThetaBenefit: 'Meditação Profunda',
+    presetSchumannBenefit: 'Ressonância Terrestre',
+    presetAlpha10Benefit: 'Coerência Cardíaca',
+    presetAlpha8Benefit: 'Criatividade & Fluxo',
+    presetBetaBenefit: 'Foco & Produtividade',
+    presetGamma40Benefit: 'Protocolo MIT 40 Hz',
+    presetGamma25Benefit: 'Processamento Cognitivo',
+    presetNadiHz: 'Alternada',
+    presetNadiBenefit: 'Equilíbrio Hemisférico',
+    preset478Hz: 'Relaxamento',
+    preset478Benefit: 'Ativação Parassimpática',
+    presetBoxHz: 'Quadrado',
+    presetBoxBenefit: 'Equilíbrio SNA',
+    presetDispenzaBenefit: 'Ativação Pineal',
+    presetWimHofHz: 'Hiperventilatória',
+    presetWimHofBenefit: 'Ativação Simpática',
+    tagRetFull: 'Retenção pulmão cheio',
+    tagRetEmpty: 'Retenção pulmão vazio',
+    tagWimHofRet: '30 resp + retenção',
+    ctrlBreath: 'Respiração',
+    ctrlBpm: 'Resp/min',
+    ctrlRatio: 'Proporção i:e',
+    ctrlHoldFull: 'Ret. cheio (s)',
+    ctrlHoldEmpty: 'Ret. vazio (s)',
+    ctrlBinaural: 'Binaural',
+    ctrlCarrier: 'Portadora',
+    ctrlAudio: 'Áudio',
+    ctrlVol: 'Volume',
+    togBinaural: 'Binaural',
+    togBeep: 'Bip guia',
+    togNoise: 'Ruído rosa',
+    orbReady: 'pronto',
+    phaseIdle: 'Selecione um preset e pressione ▶',
+    phaseInhale: 'inspire',
+    phaseExhale: 'expire',
+    phaseHoldFull: 'retenha',
+    phaseHoldEmpty: 'vazio',
+    phaseTxtInhale: '↑ inspire',
+    phaseTxtExhale: '↓ expire',
+    phaseTxtHoldFull: '⏸ retenção cheia',
+    phaseTxtHoldEmpty: '⏸ retenção vazia',
+    whRound: 'Rodada',
+    whRetention: '⏸ Retenção · toque ▶ para continuar',
+    whRecovery: '↑ Respiração de recuperação',
+    whHold15: '⏸ Segure 15s',
+    whDone: '✓ Wim Hof concluído',
+    whOrbRecovery: 'recupera',
+    statCycles: 'Ciclos',
+    statSession: 'Sessão',
+    statBpm: 'Resp/min',
+    readoutLeft: 'Esq',
+    readoutRight: 'Dir',
+    // Visualization
+    vizTitleLissajous: 'Lissajous + Espectro',
+    vizTitleOscilloscope: 'Osciloscópio — Interferência em tempo real',
+    vizTitleSpectrum: 'Analisador de Espectro',
+    vizTitleSpectrogram: 'Espectrograma — História de Frequências',
+    vizTitleVectorscope: 'Vectorscope — Fase E vs D',
+    intPillAmp: 'Amplitude máxima',
+    intPillMod: 'Modulação',
+    intPillCancel: 'Cancelamento',
+    legendFigureLR: 'Figura E/D',
+    legendBarsL: 'Barras E',
+    legendBarsR: 'Barras D',
+    legendBeatDelta: 'Beat Δ',
+    legendChL: 'Canal E',
+    legendChR: 'Canal D',
+    legendInterference: 'Interferência',
+    legendEnvelope: 'Envelope',
+    legendEnergyL: 'Energia E',
+    legendEnergyR: 'Energia D',
+    legendBeatMarker: 'Marcador beat',
+    legendLow: 'Baixa',
+    legendMid: 'Média',
+    legendHigh: 'Alta',
+    legendMax: 'Máxima',
+    legendPhaseLR: 'Fase E/D',
+    legendMonoStereo: 'Centro=mono · Borda=estéreo puro',
+    wizStep: 'Passo',
+    wizOf: 'de',
+    wizPrev: '← Anterior',
+    wizNext: 'Próximo →',
+    wizApply: 'Aplicar preset ↗',
+    wizTip: 'Dica prática',
+    bibTitle: 'Base Científica',
+    bibSub: 'Literatura revisada · 2025–2026',
+    bibTabBinaural: 'Frequências Binaurais',
+    bibTabPranayama: 'Pranayama & EEG',
+    bibTabVago: 'Nervo Vago & HRV',
+    bibTabLcr: 'LCR & Respiração',
+    bibDisclaimer: 'Ferramenta educativa e de bem-estar. Não constitui diagnóstico médico. Consulte um profissional para qualquer condição de saúde.',
+    bibClose: 'Fechar',
+  },
+};
+
+// ════════════════════════════════════════════════════
+// WIZARD CONTENT — Multilingual educational content
+// ════════════════════════════════════════════════════
+const WIZARD_CONTENT = {
+  es: {
+    delta: {
+      color: '#9b7de8', band: 'Delta · 0.5–4 Hz — Sueño Profundo',
+      steps: [
+        { label:'¿Qué es?', title:'Delta y el sistema glinfático',
+          body:`<strong>Delta (0.5–4 Hz)</strong> es la banda cerebral más lenta. Domina en sueño profundo sin REM — la fase donde el sistema glinfático activa su limpieza de beta-amiloide y tau.<br><br>Este preset usa <em>2.5 Hz de beat binaural</em> — en el centro de la banda delta — combinado con <em>3 respiraciones/min</em>, que activa el máximo tono vagal y la mayor amplitud de LCR pulsátil.<br><br>No es para quedarse dormido: es para inducir <em>vigilia delta</em> — un estado de profunda quietud con el sistema de limpieza cerebral activado.` },
+        { label:'Aplicación', title:'Cuándo y cómo usarlo',
+          body:`<strong>Mejor momento:</strong> Noche, antes de dormir. O en sesiones de restauración después de trabajo cognitivo intenso.<br><br><strong>Duración mínima:</strong> 20 minutos para comenzar a ver efectos en HRV.<br><br><strong>Postura:</strong> Recostado, con auriculares. La respiración a 3 rpm puede ser exigente — si sientes ansiedad, sube a 4 rpm.<br><br><em>Precaución:</em> Puede inducir somnolencia. No usar antes de conducir o tareas que requieran vigilancia.`,
+          tip:'Combina con ruido rosa activado. Estudios del NIH usaron 7 Hz binaural + ruido rosa sobre las frecuencias binaurales puras para mejorar la señal.' },
+      ]
+    },
+    theta: {
+      color: '#4488cc', band: 'Theta · 4–8 Hz — Meditación Profunda',
+      steps: [
+        { label:'¿Qué es?', title:'El estado theta: creatividad y memoria',
+          body:`<strong>Theta (4–8 Hz)</strong> domina en meditación profunda, hipnagogia (umbral sueño-vigilia), creatividad y acceso a memorias emocionales.<br><br>A 6 Hz, theta activity developed across the entire cortex within 10 minutes in controlled studies. El hipocampo sincroniza su actividad theta con la frecuencia respiratoria — la respiración y la memoria están directamente acopladas.` },
+        { label:'Respiración', title:'4 rpm — máxima activación vagal',
+          body:`<strong>4 respiraciones/min (0.067 Hz HRV)</strong> lleva el sistema nervioso autónomo a dominancia parasimpática profunda.<br><br>A esta velocidad, la oscilación de la presión intracraneal (LCR) se hace más pronunciada — activando el eje corazón-cerebro de forma más intensa que a 6 rpm.<br><br>El ratio 1:1 (exhala = inhala) es neutro. Si buscas mayor relajación, prueba 0.7 (exhala más larga).`,
+          tip:'En este estado el cerebro es muy receptivo a sugestión positiva y visualización. Es el estado que muchas tradiciones contemplan para meditación guiada.' },
+      ]
+    },
+    schumann: {
+      color: '#4ecb8a', band: 'Schumann · 7.83 Hz — Resonancia Terrestre',
+      steps: [
+        { label:'¿Qué es?', title:'La frecuencia de la cavidad Tierra-ionosfera',
+          body:`<strong>7.83 Hz</strong> es la frecuencia fundamental de resonancia de Schumann — la cavidad electromagnética entre la superficie terrestre y la ionosfera, excitada principalmente por rayos.<br><br>Coincide con la banda theta alta/alpha baja del EEG humano. Hay correlaciones publicadas entre variaciones de Schumann y cambios en EEG, aunque la causalidad directa no está establecida.<br><br>El campo de Schumann es extremadamente débil (~1 picoTesla). Lo más interesante: cuando estás en coherencia cardíaca + alpha cerebral, <em>ya estás en la misma banda naturalmente</em>.` },
+      ]
+    },
+    alpha: {
+      color: '#50b4c8', band: 'Alpha · 8–13 Hz — Coherencia Cardíaca',
+      steps: [
+        { label:'¿Qué es?', title:'Alpha y coherencia: el estado óptimo',
+          body:`<strong>Alpha (8–13 Hz)</strong> es el estado de relajación alerta — atento pero sin tensión. La banda estudiada más consistentemente para reducción de ansiedad y mejora de rendimiento cognitivo.<br><br>A <em>10 Hz</em>, el beat binaural coincide con el alpha peak medio de la mayoría de adultos. A <em>6 respiraciones/min (0.1 Hz HRV)</em>, el corazón entra en coherencia — el estado de máxima eficiencia cardiovascular.` },
+        { label:'Ciencia', title:'Coherencia cardíaca: lo que dice la evidencia',
+          body:`La HRV mediada vagalmente (vmHRV) es actualmente considerada un índice de control cognitivo top-down. Mayor vmHRV → mejor función ejecutiva, memoria, atención y lenguaje.<br><br>La <em>arritmia sinusal respiratoria</em> a 0.1 Hz es el marcador más robusto de coherencia. Este preset la maximiza.<br><br>Estudios del HeartMath Institute muestran que añadir emoción positiva genuina (gratitud) amplifica la coherencia más que cualquier técnica técnica.`,
+          tip:'Empieza siempre tus sesiones con este preset antes de cambiar a Theta o Delta. Establece la coherencia cardíaca como base.' },
+      ]
+    },
+    beta: {
+      color: '#d4a84b', band: 'Beta · 13–30 Hz — Foco',
+      steps: [
+        { label:'¿Qué es?', title:'Beta y el box breathing',
+          body:`<strong>Beta (13–30 Hz)</strong> domina en pensamiento activo, resolución de problemas y foco sostenido. El preset usa <em>16 Hz</em> de beat binaural — beta medio.<br><br>Combinado con <strong>Box Breathing (4-4-4-4)</strong>: inhala 4s, retiene lleno 4s, exhala 4s, retiene vacío 4s. Esta técnica equilibra el SNA y reduce el cortisol — usada por equipos SEAL de la Marina de EEUU para performance bajo presión.`,
+          tip:'Box breathing es ideal antes de una presentación, negociación difícil, o sesión de trabajo profundo. Hazlo 5 minutos antes de comenzar.' },
+      ]
+    },
+    gamma: {
+      color: '#e05555', band: 'Gamma · 25 Hz — Procesamiento Cognitivo',
+      steps: [
+        { label:'¿Qué es?', title:'Gamma: integración cognitiva alta',
+          body:`<strong>Gamma (>30 Hz)</strong> está asociado a procesamiento de información de alto nivel, binding perceptual (unir información de distintas áreas) y estados contemplativos avanzados en meditadores expertos.<br><br>A <em>25 Hz</em> estamos en la frontera Beta/Gamma — estimulante pero accesible. Notarás percepción más vívida y conexiones inesperadas entre ideas.`,
+          tip:'Gamma es estimulante, no relajante. Úsalo para trabajo creativo intenso o estudio. Máximo 20-30 minutos. Si sientes presión en la cabeza, pasa a Alpha.' },
+      ]
+    },
+    gamma40: {
+      color: '#ff6b6b', band: 'Gamma 40 Hz — Protocolo MIT',
+      steps: [
+        { label:'¿Qué es?', title:'40 Hz — La frecuencia más estudiada',
+          body:`<strong>40 Hz</strong> es la frecuencia Gamma más investigada científicamente. El laboratorio de Li-Huei Tsai (MIT, 2016–2023) demostró que estimulación multisensorial a 40 Hz reduce placas amiloides en modelos de Alzheimer hasta un <em>40–50%</em>.<br><br>El mecanismo propuesto: 40 Hz sincroniza las células gliales, aumentando la actividad del sistema glinfático — la red de limpieza cerebral que normalmente opera en delta durante el sueño.` },
+        { label:'Protocolo', title:'Cómo usarlo correctamente',
+          body:`<strong>Duración:</strong> 20–40 minutos/día. Los efectos se acumulan con práctica regular (semanas, no días).<br><br><strong>Portadora:</strong> 500 Hz — una de las más eficaces para transmitir 40 Hz con claridad.<br><br><strong>Ruido rosa activado:</strong> el MIT usa estimulación broadband + 40 Hz — actívalo en esta app.<br><br><em>Precaución:</em> No usar si tienes epilepsia o historial de convulsiones. Máximo 40 min continuos. No combinar con estimulantes.`,
+          tip:'Mejor momento: mañana, después de despertar. El cerebro recién descansado responde mejor a estimulación Gamma.' },
+      ]
+    },
+    nadi: {
+      color: '#4ecb8a', band: 'Nadi Shodhana — Equilibrio Hemisférico',
+      steps: [
+        { label:'¿Qué es?', title:'La respiración alternada y los hemisferios',
+          body:`<strong>Nadi Shodhana</strong> (respiración por fosas alternadas) es la técnica pranayama con mayor evidencia para equilibrio interhemisférico.<br><br>Investigación con EEG muestra que la respiración nasal activa diferencialmente el hipocampo ipsilateral — la fosa derecha activa el hemisferio derecho y viceversa. Alternar equilibra ambos.<br><br>Este preset simula la frecuencia del ciclo nasal natural (~90-120 min) a través del beat binaural 8 Hz — induciendo coherencia alpha interhemisférica.` },
+      ]
+    },
+    '478': {
+      color: '#9b7de8', band: '4-7-8 — Activación Parasimpática',
+      steps: [
+        { label:'¿Qué es?', title:'El 4-7-8 y el sistema nervioso',
+          body:`Desarrollado por Andrew Weil basado en pranayama clásico. La secuencia:<br><br>• <strong>4s inhala</strong> — carga el sistema<br>• <strong>7s retención pulmón lleno</strong> — activa barorreceptores, sube CO₂, modula amígdala<br>• <strong>8s exhala</strong> — activación vagal máxima, baja FC<br><br>La retención de 7 segundos es la clave: la presión intratorácica alta estimula los barorreceptores aórticos que envían señales calmantes directamente al tronco encefálico.` },
+      ]
+    },
+    box: {
+      color: '#d4a84b', band: 'Box Breathing — Equilibrio SNA',
+      steps: [
+        { label:'¿Qué es?', title:'La respiración cuadrada y el SNA',
+          body:`<strong>Box Breathing (4-4-4-4)</strong>: inhala 4s → retiene lleno 4s → exhala 4s → retiene vacío 4s.<br><br>Las <em>dos retenciones simétricas</em> crean un equilibrio exacto entre activación simpática (retención lleno = presión alta) y parasimpática (retención vacío = presión baja).<br><br>Es la técnica de regulación SNA más usada en fuerzas especiales y atletas de élite.` },
+      ]
+    },
+    dispenza: {
+      color: '#9b7de8', band: 'Maha Bandha · Dispenza — Activación Pineal',
+      steps: [
+        { label:'¿Qué es?', title:'La retención con pulmón vacío y el LCR',
+          body:`La técnica de Joe Dispenza (contracción de periné + retención vacío + visualización) se corresponde con el <strong>Maha Bandha</strong> del pranayama clásico.<br><br>El mecanismo fisiológico plausible:<br>• La retención con pulmones vacíos crea presión negativa intratorácica<br>• La contracción del suelo pélvico (Mula Bandha) aumenta la presión intraabdominal<br>• Esto puede modificar el gradiente de presión del LCR entre sacro y cráneo<br><br>El efecto sobre la glándula pineal es especulativo, pero el efecto sobre la circulación del LCR tiene respaldo biofísico.`,
+          tip:'Empieza con retenciones cortas (10-15s). Aumenta gradualmente a 30-45s con práctica. NUNCA fuerces — si sientes mareo, para.' },
+      ]
+    },
+    wimhof: {
+      color: '#e8a020', band: 'Wim Hof Method — Activación Simpática',
+      steps: [
+        { label:'¿Qué es?', title:'El método Wim Hof: fisiología real',
+          body:`El método Wim Hof tiene 3 pilares: respiración, exposición al frío y mente. Esta app implementa el pilar respiratorio.<br><br><strong>Las 30 respiraciones profundas</strong> producen hiperventilación controlada: bajan el CO₂ (hipocapnia), suben el pH sanguíneo (alcalosis respiratoria), y activan el eje simpático-adrenal liberando epinefrina.<br><br><strong>La retención vacía</strong> crea hipoxia+hipercapnia gradual que activa reflejos de supervivencia y según estudios (Kox et al. 2014), permite a practicantes modular su respuesta inmune voluntariamente.` },
+        { label:'Protocolo', title:'Las 4 rondas — cómo funciona en esta app',
+          body:`<strong>Cada ronda:</strong><br>1. <em>30 respiraciones rápidas</em> — inhala profundo, exhala sin forzar (la app guía con pitidos)<br>2. <em>Retención vacío</em> — exhala completamente y aguanta. La app te muestra el tiempo. Toca ▶ para terminar cuando necesites respirar<br>3. <em>Respiración de recuperación</em> — inhala profundo, retiene 15s<br><br>Repite 4 rondas. El indicador de rondas en el orbe muestra tu progreso.`,
+          tip:'Hazlo siempre acostado. NUNCA en agua, conduciendo, o de pie. La hipocapnia puede causar desmayo en algunas personas.' },
+        { label:'Precauciones', title:'Contraindicaciones importantes',
+          body:`<strong>No practicar si:</strong><br>• Embarazo<br>• Epilepsia<br>• Problemas cardiovasculares<br>• Presión arterial alta no controlada<br><br><strong>Síntomas normales:</strong> Hormigueo en manos/cara (hipocapnia), ligero mareo, sensación de energía.<br><br><strong>Para inmediatamente si:</strong> Pérdida de consciencia, dolor de pecho, o malestar intenso.<br><br><em>Los efectos son acumulativos — con 3-4 semanas de práctica diaria los resultados son significativamente mayores.</em>` },
+      ]
+    },
+  },
+  en: {
+    // English translations - placeholder for now, can be expanded
+  },
+  fr: {
+    // French translations - placeholder for now, can be expanded
+  },
+  pt: {
+    // Portuguese translations - placeholder for now, can be expanded
+  }
+};
+
+// Current language
+let LANG = 'es';
+
+/** Get translated string */
+function t(key) {
+  return (I18N[LANG] && I18N[LANG][key]) || I18N.es[key] || key;
+}
+
+/** Apply current language to all data-i18n elements */
+function applyLang() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    const val = t(key);
+    if (val) el.textContent = val;
+  });
+  // Update html lang attribute
+  document.getElementById('htmlRoot').lang = LANG;
+  // Update lang buttons active state
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.toLowerCase() === LANG);
+  });
+  // If not playing, refresh idle text
+  if (!S || !S.playing) {
+    const ptxt = document.getElementById('phaseTxt');
+    if (ptxt) ptxt.textContent = t('phaseIdle');
+    const orbLbl = document.getElementById('orbLbl');
+    if (orbLbl) orbLbl.textContent = t('orbReady');
+  }
+  // Update status text
+  const statusEl = document.getElementById('statusTxt');
+  if (statusEl && S) {
+    statusEl.textContent = S.playing ? t('statusActive') : t('statusInactive');
+  }
+}
+
+/** Set language and re-render */
+function setLang(lang) {
+  if (!I18N[lang]) return;
+  LANG = lang;
+  applyLang();
+}
+
+
+const S = {
+  playing:     false,
+  bpm:         6,
+  ratio:       1.0,
+  holdFull:    0,    // seconds to hold after inhale (pulmón lleno)
+  holdEmpty:   0,    // seconds to hold after exhale (pulmón vacío)
+  carrier:     250,
+  beat:        10,
+  vol:         0.6,
+  binaural:    true,
+  beep:        true,
+  noise:       false,
+  phase:       'idle',  // idle | inhale | holdFull | exhale | holdEmpty
+  cycles:      0,
+  sessionSec:  0,
+  breathPreset:'coherencia',  // current breath technique id
+  // Wim Hof specific state
+  wh: {
+    active:      false,
+    round:       0,       // 0-indexed round (0–3 = 4 rounds)
+    totalRounds: 4,
+    repCount:    0,       // breath reps within current round (0-29)
+    totalReps:   30,
+    mode:        'reps',  // 'reps' | 'retention' | 'recovery'
+  }
+};
+
+// ════════════════════════════════════════════════════
+// BREATH TECHNIQUE DEFINITIONS
+// Each technique defines the sequence of phases.
+// Special phases: holdFull (ret pulmón lleno), holdEmpty (ret pulmón vacío)
+// ════════════════════════════════════════════════════
+const BREATH_PRESETS = {
+
+  /** Coherencia cardíaca — respiración libre i:e */
+  coherencia: {
+    name: 'Coherencia Cardíaca',
+    sequence: ['inhale','exhale'],
+    getHoldFull:  () => S.holdFull,
+    getHoldEmpty: () => S.holdEmpty,
+  },
+
+  /** Nadi Shodhana simplificado — 4-0-4-0 */
+  nadi: {
+    name: 'Nadi Shodhana',
+    sequence: ['inhale','exhale'],
+    getHoldFull:  () => 0,
+    getHoldEmpty: () => 0,
+    forcedRatio: 1.0,
+  },
+
+  /** 4-7-8 — inhala 4, retiene lleno 7, exhala 8 */
+  '478': {
+    name: '4-7-8 Pranayama',
+    sequence: ['inhale','holdFull','exhale'],
+    getHoldFull:  () => 7,
+    getHoldEmpty: () => 0,
+    // Override durations (fixed, not bpm-derived)
+    fixedDurations: { inhale: 4000, holdFull: 7000, exhale: 8000 },
+  },
+
+  /** Box Breathing — 4-4-4-4 */
+  box: {
+    name: 'Box Breathing',
+    sequence: ['inhale','holdFull','exhale','holdEmpty'],
+    getHoldFull:  () => 4,
+    getHoldEmpty: () => 4,
+    fixedDurations: { inhale: 4000, holdFull: 4000, exhale: 4000, holdEmpty: 4000 },
+  },
+
+  /** Dispenza / Maha Bandha — ret. con pulmón vacío */
+  dispenza: {
+    name: 'Maha Bandha · Dispenza',
+    sequence: ['inhale','exhale','holdEmpty'],
+    getHoldFull:  () => 0,
+    getHoldEmpty: () => S.holdEmpty || 15,
+  },
+
+  /** Bhastrika — respiraciones rápidas, sinergiza con Gamma */
+  bhastrika: {
+    name: 'Bhastrika',
+    sequence: ['inhale','exhale'],
+    getHoldFull:  () => 0,
+    getHoldEmpty: () => 0,
+  },
+
+  /** Wim Hof — gestionado por motor especial */
+  wimhof: {
+    name: 'Wim Hof Method',
+    sequence: ['inhale','exhale'],   // overridden by WH engine
+    getHoldFull:  () => 0,
+    getHoldEmpty: () => 0,
+    special: 'wimhof',
+  },
+};
+
+// Current position in the phase sequence
+let _seqIndex = 0;
+
+// ════════════════════════════════════════════════════
+// AUDIO ENGINE
+// ════════════════════════════════════════════════════
+let AC, masterGain, leftOsc, rightOsc, lGain, rGain, merger;
+let noiseNode, noiseGain;
+
+/** Initialize Web Audio context (must be triggered by user gesture) */
+function initAC() {
+  if (AC) return;
+  AC = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = AC.createGain();
+  masterGain.gain.value = S.vol;
+  masterGain.connect(AC.destination);
+}
+
+/** Create and start binaural oscillator pair via ChannelMerger */
+function startBinaural() {
+  if (!S.binaural || !AC) return;
+  merger = AC.createChannelMerger(2);
+  merger.connect(masterGain);
+  leftOsc  = mkOsc(S.carrier);         lGain = AC.createGain(); lGain.gain.value = 0.35;
+  rightOsc = mkOsc(S.carrier + S.beat); rGain = AC.createGain(); rGain.gain.value = 0.35;
+  leftOsc.connect(lGain);  lGain.connect(merger, 0, 0);  // left channel
+  rightOsc.connect(rGain); rGain.connect(merger, 0, 1);  // right channel
+  leftOsc.start(); rightOsc.start();
+  updateReadout();
+}
+
+/** Create sine oscillator at given frequency */
+function mkOsc(freq) {
+  const o = AC.createOscillator();
+  o.type = 'sine';
+  o.frequency.value = freq;
+  return o;
+}
+
+/** Stop and disconnect binaural oscillators */
+function stopBinaural() {
+  try { leftOsc && leftOsc.stop(); rightOsc && rightOsc.stop(); } catch(e) {}
+  leftOsc = rightOsc = null;
+  if (merger) { merger.disconnect(); merger = null; }
+}
+
+/** Restart binaural with current S.carrier and S.beat (called on slider change) */
+function restartBinaural() {
+  if (S.playing && S.binaural) { stopBinaural(); startBinaural(); }
+}
+
+/**
+ * Generate and play pink noise (Voss-McCartney approximation).
+ * Pink noise empirically improves binaural beat perception by masking
+ * environmental frequencies (NIH study: pink noise + 7Hz binaural).
+ */
+function startNoise() {
+  if (!AC) return;
+  const sr = AC.sampleRate, sz = sr * 3;
+  const buf = AC.createBuffer(1, sz, sr);
+  const d = buf.getChannelData(0);
+  let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+  for (let i = 0; i < sz; i++) {
+    const w = Math.random() * 2 - 1;
+    b0 = .99886*b0+w*.0555179; b1 = .99332*b1+w*.0750759;
+    b2 = .96900*b2+w*.153852;  b3 = .86650*b3+w*.3104856;
+    b4 = .55000*b4+w*.5329522; b5 = -.7616*b5-w*.016898;
+    d[i] = (b0+b1+b2+b3+b4+b5+b6+w*.5362) * .11;
+    b6 = w * .115926;
+  }
+  const src = AC.createBufferSource();
+  src.buffer = buf; src.loop = true;
+  noiseGain = AC.createGain(); noiseGain.gain.value = .18;
+  src.connect(noiseGain); noiseGain.connect(masterGain);
+  src.start(); noiseNode = src;
+}
+
+function stopNoise() {
+  try { noiseNode && noiseNode.stop(); } catch(e) {} noiseNode = null;
+}
+
+/**
+ * Play a short sine beep for breath guidance.
+ * Different frequencies signal different phases:
+ *   inhale:    520 Hz (bright, upward cue)
+ *   exhale:    360 Hz (low, release cue)
+ *   holdFull:  440 Hz (neutral, sustained full)
+ *   holdEmpty: 280 Hz (very low, void cue)
+ */
+function beep(freq, vol = 0.25) {
+  if (!S.beep || !AC) return;
+  const o = AC.createOscillator(), g = AC.createGain();
+  g.gain.setValueAtTime(vol * S.vol, AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001, AC.currentTime + .12);
+  o.frequency.value = freq; o.type = 'sine';
+  o.connect(g); g.connect(masterGain);
+  o.start(); o.stop(AC.currentTime + .14);
+}
+
+// ════════════════════════════════════════════════════
+// BREATHING ENGINE
+// ════════════════════════════════════════════════════
+let breathTO = null, sessionIV = null, rafId = null;
+let phaseStart = 0, phaseDur = 0;
+
+/**
+ * Calculate inhale/exhale durations from bpm and ratio.
+ * cycleMs = full breath cycle (60 / bpm * 1000)
+ * inhale = cycleMs * ratio/(ratio+1)
+ * exhale = cycleMs * 1/(ratio+1)
+ */
+function breathDur() {
+  const cycleMs = (60 / S.bpm) * 1000;
+  const r = S.ratio;
+  return { inhale: cycleMs * (r / (r + 1)), exhale: cycleMs * (1 / (r + 1)) };
+}
+
+/**
+ * Get duration for a given phase.
+ * Checks for fixed durations (4-7-8, box) first, then calculates from bpm.
+ * Retention phases use explicit second values.
+ */
+function getPhaseDuration(phase) {
+  const tech = BREATH_PRESETS[S.breathPreset] || BREATH_PRESETS.coherencia;
+  if (tech.fixedDurations && tech.fixedDurations[phase] !== undefined) {
+    return tech.fixedDurations[phase];
+  }
+  if (phase === 'holdFull')  return (tech.getHoldFull()  || 0) * 1000;
+  if (phase === 'holdEmpty') return (tech.getHoldEmpty() || 0) * 1000;
+  const d = breathDur();
+  return phase === 'inhale' ? d.inhale : d.exhale;
+}
+
+/**
+ * Get the full phase sequence for the current breath preset.
+ * Filters out hold phases if duration is 0 (avoids empty-phase flicker).
+ */
+function getPhaseSequence() {
+  const tech = BREATH_PRESETS[S.breathPreset] || BREATH_PRESETS.coherencia;
+  return tech.sequence.filter(ph => getPhaseDuration(ph) > 0);
+}
+
+/**
+ * Advance to the next phase in the sequence.
+ * Called by setTimeout at end of each phase.
+ */
+function nextPhase() {
+  if (!S.playing) return;
+
+  // Wim Hof uses its own state machine
+  if (S.breathPreset === 'wimhof') {
+    advanceWimHof();
+    return;
+  }
+
+  const seq = getPhaseSequence();
+  _seqIndex = (_seqIndex + 1) % seq.length;
+
+  // Count a complete cycle when we complete a full sequence
+  if (_seqIndex === 0) {
+    S.cycles++;
+    document.getElementById('sCycles').textContent = S.cycles;
+  }
+
+  runPhase(seq[_seqIndex]);
+}
+
+/**
+ * Begin a breath phase: update orb visuals, bar, labels, beep, set timeout.
+ * @param {string} phase - 'inhale' | 'exhale' | 'holdFull' | 'holdEmpty'
+ */
+function runPhase(phase) {
+  if (!S.playing) return;
+  S.phase = phase;
+  phaseDur   = getPhaseDuration(phase);
+  phaseStart = performance.now();
+
+  const orb  = document.getElementById('orb');
+  const bar  = document.getElementById('bBar');
+  const lbl  = document.getElementById('orbLbl');
+  const ptxt = document.getElementById('phaseTxt');
+
+  // Remove hold classes before re-applying
+  orb.classList.remove('hold-full', 'hold-empty');
+  orb.style.transition = `transform ${phaseDur}ms ease-in-out, box-shadow ${phaseDur}ms ease-in-out, border-color ${phaseDur}ms ease-in-out`;
+
+  switch (phase) {
+    case 'inhale':
+      orb.style.transform    = 'scale(1.42)';
+      orb.style.boxShadow    = '0 0 40px rgba(80,180,200,.3)';
+      orb.style.borderColor  = 'rgba(80,180,200,.7)';
+      bar.style.background   = 'var(--cyan)';
+      lbl.textContent        = t('phaseInhale');
+      lbl.style.color        = 'var(--cyan)';
+      ptxt.textContent       = `${t('phaseTxtInhale')}  ${(phaseDur/1000).toFixed(1)}s`;
+      beep(520, .28);
+      fireRipple();
+      break;
+
+    case 'holdFull':
+      // Pulmón lleno: orb stays expanded, golden color
+      orb.classList.add('hold-full');
+      orb.style.transform    = 'scale(1.42)';
+      lbl.textContent        = t('phaseHoldFull');
+      lbl.style.color        = 'var(--gold)';
+      ptxt.textContent       = `${t('phaseTxtHoldFull')}  ${(phaseDur/1000).toFixed(0)}s`;
+      bar.style.background   = 'var(--gold)';
+      beep(440, .2);
+      break;
+
+    case 'exhale':
+      orb.style.transform    = 'scale(1.0)';
+      orb.style.boxShadow    = '0 0 12px rgba(68,136,204,.15)';
+      orb.style.borderColor  = 'rgba(68,136,204,.25)';
+      bar.style.background   = 'var(--blue)';
+      lbl.textContent        = t('phaseExhale');
+      lbl.style.color        = 'var(--cyan)';
+      ptxt.textContent       = `${t('phaseTxtExhale')}  ${(phaseDur/1000).toFixed(1)}s`;
+      beep(360, .2);
+      break;
+
+    case 'holdEmpty':
+      // Pulmón vacío: orb stays contracted, purple color
+      orb.classList.add('hold-empty');
+      orb.style.transform    = 'scale(1.0)';
+      lbl.textContent        = t('phaseHoldEmpty');
+      lbl.style.color        = 'var(--purple)';
+      ptxt.textContent       = `${t('phaseTxtHoldEmpty')}  ${(phaseDur/1000).toFixed(0)}s`;
+      bar.style.background   = 'var(--purple)';
+      beep(280, .18);
+      break;
+  }
+
+  breathTO = setTimeout(nextPhase, phaseDur);
+}
+
+// ════════════════════════════════════════════════════
+// WIM HOF STATE MACHINE
+// The Wim Hof method has a specific structure:
+//   Round: 30 rapid breath cycles → hold (empty) → recovery breath → repeat
+// ════════════════════════════════════════════════════
+
+/** Start the Wim Hof engine from round 0 */
+function startWimHof() {
+  const wh = S.wh;
+  wh.active = true;
+  wh.round    = 0;
+  wh.repCount = 0;
+  wh.mode     = 'reps';
+  updateWhDots();
+  document.getElementById('whRow').classList.add('visible');
+  runWimHofRep();
+}
+
+/** Run one rapid breath rep (inhale + quick exhale) */
+function runWimHofRep() {
+  const wh = S.wh;
+  if (!S.playing) return;
+
+  // If we've completed all reps, begin retention
+  if (wh.repCount >= wh.totalReps) {
+    wh.mode = 'retention';
+    beginWimHofRetention();
+    return;
+  }
+
+  document.getElementById('phaseCycle').textContent = `${wh.repCount + 1}/${wh.totalReps}`;
+
+  // Short rapid breaths: ~1.5s inhale, ~1s exhale
+  S.phase = 'inhale';
+  phaseDur = 1400;
+  phaseStart = performance.now();
+  updateOrbSimple(t('phaseInhale'), 'scale(1.3)', 'rgba(80,180,200,.5)', 'var(--cyan)');
+  bar('var(--cyan)');
+  beep(520, .15);
+  fireRipple();
+
+  breathTO = setTimeout(() => {
+    if (!S.playing) return;
+    S.phase = 'exhale';
+    phaseDur = 800;
+    phaseStart = performance.now();
+    updateOrbSimple(t('phaseExhale'), 'scale(1.0)', 'rgba(68,136,204,.2)', 'var(--cyan)');
+    bar('var(--blue)');
+    breathTO = setTimeout(() => {
+      wh.repCount++;
+      runWimHofRep();
+    }, 800);
+  }, 1400);
+}
+
+/** Begin Wim Hof empty retention (hold after full exhale) */
+function beginWimHofRetention() {
+  if (!S.playing) return;
+  S.phase = 'holdEmpty';
+  phaseDur = 0;  // indefinite — user taps to end (or auto after 90s)
+  phaseStart = performance.now();
+
+  updateOrbSimple(t('phaseHoldFull'), 'scale(0.9)', 'rgba(155,125,232,.6)', 'var(--purple)');
+  document.getElementById('orb').classList.add('hold-empty');
+  bar('var(--purple)');
+  document.getElementById('phaseTxt').textContent = t('whRetention');
+  document.getElementById('phaseCycle').textContent = '';
+  beep(280, .25);
+
+  // Auto-advance after 90s max (safety)
+  breathTO = setTimeout(finishWimHofRetention, 90000);
+}
+
+/** End retention and do recovery breath */
+function finishWimHofRetention() {
+  clearTimeout(breathTO);
+  if (!S.playing) return;
+
+  // Recovery: one deep inhale + 15s hold full
+  S.phase = 'inhale';
+  phaseDur = 2000;
+  phaseStart = performance.now();
+  document.getElementById('orb').classList.remove('hold-empty');
+  updateOrbSimple(t('whOrbRecovery'), 'scale(1.5)', 'rgba(80,180,200,.6)', 'var(--cyan)');
+  bar('var(--cyan)');
+  beep(600, .3);
+  document.getElementById('phaseTxt').textContent = t('whRecovery');
+
+  breathTO = setTimeout(() => {
+    if (!S.playing) return;
+    S.phase = 'holdFull';
+    phaseDur = 15000;
+    phaseStart = performance.now();
+    document.getElementById('orb').classList.add('hold-full');
+    updateOrbSimple(t('phaseHoldFull'), 'scale(1.5)', 'rgba(212,168,75,.6)', 'var(--gold)');
+    bar('var(--gold)');
+    beep(440, .25);
+    document.getElementById('phaseTxt').textContent = t('whHold15');
+
+    breathTO = setTimeout(advanceWimHof, 15000);
+  }, 2000);
+}
+
+/** Advance to next Wim Hof round or finish */
+function advanceWimHof() {
+  const wh = S.wh;
+  wh.round++;
+  document.getElementById('orb').classList.remove('hold-full','hold-empty');
+
+  if (wh.round >= wh.totalRounds) {
+    // Session complete
+    document.getElementById('phaseTxt').textContent = t('whDone');
+    document.getElementById('phaseCycle').textContent = '';
+    updateWhDots();
+    wh.active = false;
+    return;
+  }
+
+  wh.repCount = 0;
+  wh.mode = 'reps';
+  S.cycles++;
+  document.getElementById('sCycles').textContent = S.cycles;
+  updateWhDots();
+  runWimHofRep();
+}
+
+/** Update Wim Hof round dot indicators */
+function updateWhDots() {
+  const wh = S.wh;
+  document.getElementById('whLbl').textContent = `${Math.min(wh.round+1, wh.totalRounds)} / ${wh.totalRounds}`;
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById(`whD${i}`);
+    dot.classList.remove('done','current');
+    if (i < wh.round)  dot.classList.add('done');
+    if (i === wh.round) dot.classList.add('current');
+  }
+}
+
+/** Allow user tap to end retention early (▶ button double-action while in WH) */
+function tryEndWimHofRetention() {
+  if (S.breathPreset === 'wimhof' && S.phase === 'holdEmpty' && S.wh.active) {
+    finishWimHofRetention();
+    return true;
+  }
+  return false;
+}
+
+// ════════════════════════════════════════════════════
+// ORB HELPERS
+// ════════════════════════════════════════════════════
+
+/** Quick orb visual update without animation transition */
+function updateOrbSimple(label, transform, shadow, color) {
+  const orb = document.getElementById('orb');
+  orb.style.transform   = transform;
+  orb.style.boxShadow   = shadow;
+  orb.style.borderColor = color;
+  document.getElementById('orbLbl').textContent = label;
+  document.getElementById('orbLbl').style.color = color;
+}
+
+/** Set breath bar color */
+function bar(color) {
+  document.getElementById('bBar').style.background = color;
+}
+
+/** Trigger ripple animation on inhale */
+function fireRipple() {
+  const r = document.getElementById('orbRipple');
+  r.classList.remove('go');
+  void r.offsetWidth;
+  r.classList.add('go');
+}
+
+// ════════════════════════════════════════════════════
+// MAIN ANIMATION LOOP
+// Runs every rAF frame while playing.
+// Updates breath bar progress and timer display.
+// ════════════════════════════════════════════════════
+function loop() {
+  if (!S.playing) return;
+  const now     = performance.now();
+  const elapsed = now - phaseStart;
+
+  // Only animate bar for phases with finite duration
+  if (phaseDur > 0) {
+    const prog = Math.min(elapsed / phaseDur, 1);
+    const barEl = document.getElementById('bBar');
+    barEl.style.transition = 'none';
+
+    // inhale/holdFull fill forward; exhale/holdEmpty drain backward
+    if (S.phase === 'inhale' || S.phase === 'holdFull') {
+      barEl.style.width = prog * 100 + '%';
+    } else {
+      barEl.style.width = (1 - prog) * 100 + '%';
+    }
+
+    // Countdown timer in orb
+    document.getElementById('orbSec').textContent =
+      Math.max(0, (phaseDur - elapsed) / 1000).toFixed(1);
+  } else {
+    // Indefinite retention — show elapsed time
+    document.getElementById('orbSec').textContent = (elapsed / 1000).toFixed(0) + 's';
+    document.getElementById('bBar').style.width = '50%';
+  }
+
+  drawWaves(now);
+  rafId = requestAnimationFrame(loop);
+}
+
+// ════════════════════════════════════════════════════
+// PLAY / STOP
+// ════════════════════════════════════════════════════
+function togglePlay() {
+  initAC();
+  if (AC.state === 'suspended') AC.resume();
+
+  // Special: if in WH retention mode, tap ends retention instead of stopping
+  if (S.playing && tryEndWimHofRetention()) return;
+
+  S.playing = !S.playing;
+
+  const btn = document.getElementById('playBtn');
+  btn.textContent = S.playing ? '■' : '▶';
+  btn.classList.toggle('on', S.playing);
+  document.getElementById('statusDot').classList.toggle('live', S.playing);
+  document.getElementById('statusTxt').textContent = S.playing ? t('statusActive') : t('statusInactive');
+
+  if (S.playing) {
+    // Reset session counters
+    S.cycles = 0; S.sessionSec = 0;
+    document.getElementById('sCycles').textContent = '0';
+    document.getElementById('sTime').textContent   = '0:00';
+
+    // Start audio
+    if (S.binaural) startBinaural();
+    if (S.noise)    startNoise();
+
+    // Start appropriate breath engine
+    if (S.breathPreset === 'wimhof') {
+      startWimHof();
+    } else {
+      _seqIndex = 0;
+      const seq = getPhaseSequence();
+      runPhase(seq[0]);
+    }
+
+    // Session timer
+    loop();
+    sessionIV = setInterval(() => {
+      S.sessionSec++;
+      const m = Math.floor(S.sessionSec / 60), s = S.sessionSec % 60;
+      document.getElementById('sTime').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+    }, 1000);
+
+  } else {
+    // Full stop
+    stopBinaural(); stopNoise();
+    clearTimeout(breathTO); clearInterval(sessionIV); cancelAnimationFrame(rafId);
+    S.phase = 'idle';
+    S.wh.active = false;
+
+    const orb = document.getElementById('orb');
+    orb.style.transform   = 'scale(1)';
+    orb.style.boxShadow   = '';
+    orb.style.borderColor = '';
+    orb.classList.remove('hold-full','hold-empty');
+    document.getElementById('orbLbl').textContent   = t('orbReady');
+    document.getElementById('orbLbl').style.color   = 'var(--cyan)';
+    document.getElementById('orbSec').textContent   = '–';
+    document.getElementById('phaseTxt').textContent = t('phaseIdle');
+    document.getElementById('phaseCycle').textContent = '';
+    document.getElementById('bBar').style.width     = '0%';
+    document.getElementById('whRow').classList.remove('visible');
+    drawWaves(0);
+  }
+}
+
+// ════════════════════════════════════════════════════
+// PRESET SYSTEM
+// Applies binaural + breath preset together
+// ════════════════════════════════════════════════════
+
+/**
+ * Apply a preset card — updates S, sliders, and restarts audio.
+ * @param {HTMLElement} el - the .preset-card element clicked
+ */
+function applyPreset(el) {
+  document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+
+  // Read binaural params
+  S.beat    = parseFloat(el.dataset.beat);
+  S.carrier = parseInt(el.dataset.carrier);
+  S.bpm     = parseFloat(el.dataset.bpm);
+  S.ratio   = parseFloat(el.dataset.ratio);
+
+  // Read breath technique
+  S.breathPreset = el.dataset.breath || 'coherencia';
+
+  // Apply technique-specific hold times to sliders if available
+  const tech = BREATH_PRESETS[S.breathPreset];
+  if (tech && tech.fixedDurations) {
+    S.holdFull  = (tech.fixedDurations.holdFull  || 0) / 1000;
+    S.holdEmpty = (tech.fixedDurations.holdEmpty || 0) / 1000;
+  } else if (tech) {
+    S.holdFull  = tech.getHoldFull();
+    S.holdEmpty = tech.getHoldEmpty();
+  }
+
+  // Sync all sliders
+  syncSliders();
+  updateReadout();
+  restartBinaural();
+
+  // Show/hide Wim Hof UI elements
+  document.getElementById('whRow').classList.toggle('visible', S.breathPreset === 'wimhof' && S.playing);
+}
+
+/** Push current S values into all range inputs */
+function syncSliders() {
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) { el.value = val; setFill(el); }
+  };
+  set('sBpm',       S.bpm);
+  set('sRatio',     S.ratio);
+  set('sHoldFull',  S.holdFull);
+  set('sHoldEmpty', S.holdEmpty);
+  set('sCarrier',   S.carrier);
+  set('sBeat',      S.beat);
+
+  document.getElementById('vBpm').textContent       = S.bpm.toFixed(1);
+  document.getElementById('vRatio').textContent     = Math.abs(S.ratio-1) < .05 ? '1:1' : S.ratio.toFixed(1)+':1';
+  document.getElementById('vHoldFull').textContent  = S.holdFull.toFixed(0) + 's';
+  document.getElementById('vHoldEmpty').textContent = S.holdEmpty.toFixed(0) + 's';
+  document.getElementById('vCarrier').textContent   = S.carrier + ' Hz';
+  document.getElementById('vBeat').textContent      = S.beat.toFixed(1) + ' Hz';
+  document.getElementById('sBpmStat').textContent   = S.bpm.toFixed(1);
+}
+
+// ════════════════════════════════════════════════════
+// CONTROLS — slider and toggle event handlers
+// ════════════════════════════════════════════════════
+
+/** Update CSS custom property --fill for slider gradient */
+function setFill(el) {
+  const min = parseFloat(el.min), max = parseFloat(el.max), v = parseFloat(el.value);
+  el.style.setProperty('--fill', ((v - min) / (max - min) * 100).toFixed(1) + '%');
+}
+
+document.getElementById('sBpm').addEventListener('input', function() {
+  S.bpm = parseFloat(this.value);
+  document.getElementById('vBpm').textContent     = S.bpm.toFixed(1);
+  document.getElementById('sBpmStat').textContent = S.bpm.toFixed(1);
+  setFill(this);
+});
+
+document.getElementById('sRatio').addEventListener('input', function() {
+  S.ratio = parseFloat(this.value);
+  document.getElementById('vRatio').textContent = Math.abs(S.ratio-1)<.05 ? '1:1' : S.ratio.toFixed(1)+':1';
+  setFill(this);
+});
+
+document.getElementById('sHoldFull').addEventListener('input', function() {
+  S.holdFull = parseInt(this.value);
+  document.getElementById('vHoldFull').textContent = S.holdFull + 's';
+  setFill(this);
+});
+
+document.getElementById('sHoldEmpty').addEventListener('input', function() {
+  S.holdEmpty = parseInt(this.value);
+  document.getElementById('vHoldEmpty').textContent = S.holdEmpty + 's';
+  setFill(this);
+});
+
+document.getElementById('sCarrier').addEventListener('input', function() {
+  S.carrier = parseInt(this.value);
+  document.getElementById('vCarrier').textContent = S.carrier + ' Hz';
+  setFill(this); updateReadout(); restartBinaural();
+});
+
+document.getElementById('sBeat').addEventListener('input', function() {
+  S.beat = parseFloat(this.value);
+  document.getElementById('vBeat').textContent = S.beat.toFixed(1) + ' Hz';
+  setFill(this); updateReadout(); restartBinaural();
+});
+
+document.getElementById('sVol').addEventListener('input', function() {
+  S.vol = parseInt(this.value) / 100;
+  document.getElementById('vVol').textContent = parseInt(this.value) + '%';
+  setFill(this);
+  if (masterGain) masterGain.gain.value = S.vol;
+});
+
+/** Toggle audio option (binaural | beep | noise) */
+const toggleMap = { binaural: true, beep: true, noise: false };
+function tog(key) {
+  toggleMap[key] = !toggleMap[key];
+  S[key] = toggleMap[key];
+  const track = document.getElementById('t' + key.charAt(0).toUpperCase() + key.slice(1));
+  track.classList.toggle('on', toggleMap[key]);
+  if (S.playing) {
+    if (key === 'binaural') toggleMap[key] ? startBinaural() : stopBinaural();
+    if (key === 'noise')    toggleMap[key] ? startNoise()    : stopNoise();
+  }
+}
+
+/** Update bottom bar Hz readout */
+function updateReadout() {
+  document.getElementById('dL').textContent = S.carrier;
+  document.getElementById('dR').textContent = (S.carrier + S.beat).toFixed(1);
+  document.getElementById('dB').textContent = S.beat.toFixed(1);
+  document.getElementById('dC').textContent = S.carrier;
+}
+
+// ════════════════════════════════════════════════════
+// LEFT PANEL TAB SWITCHER
+// Presets and Controls now in same column, no 2nd click
+// ════════════════════════════════════════════════════
+function switchLeftTab(tab) {
+  document.getElementById('tabPrograms').classList.toggle('active', tab === 'programs');
+  document.getElementById('tabControls').classList.toggle('active', tab === 'controls');
+  document.getElementById('presetsPanel').style.display  = tab === 'programs' ? 'block' : 'none';
+  document.getElementById('ctrlPanel').classList.toggle('visible', tab === 'controls');
+}
+
+// ════════════════════════════════════════════════════
+// VIZ SYSTEM — 5 visualization modes
+// ════════════════════════════════════════════════════
+let currentViz = 'lissajous';
+
+/** Switch visualization mode and update canvases/legends */
+function setViz(mode) {
+  currentViz = mode;
+  document.querySelectorAll('.viz-btn').forEach(b => b.classList.toggle('active', b.dataset.viz === mode));
+  
+  // Use i18n for title
+  const titleMap = {
+    lissajous:    'vizTitleLissajous',
+    oscilloscope: 'vizTitleOscilloscope',
+    spectrum:     'vizTitleSpectrum',
+    spectrogram:  'vizTitleSpectrogram',
+    vectorscope:  'vizTitleVectorscope',
+  };
+  document.getElementById('vizTitle').textContent = t(titleMap[mode]);
+
+  // Hide all canvases
+  ['wcLissajous','wcSpectrum','wcOscillo','wcSpectrogram','wcVector'].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.display = 'none';
+    el.classList.remove('viz-left','viz-right','viz-full');
+  });
+
+  // Show relevant canvas(es)
+  if (mode === 'lissajous') {
+    const a = document.getElementById('wcLissajous');
+    const b = document.getElementById('wcSpectrum');
+    a.style.display = 'block'; a.classList.add('viz-left');
+    b.style.display = 'block'; b.classList.add('viz-right');
+  } else {
+    const idMap = { oscilloscope:'wcOscillo', spectrum:'wcSpectrogram', spectrogram:'wcSpectrogram', vectorscope:'wcVector' };
+    const el = document.getElementById(idMap[mode]);
+    el.style.display = 'block'; el.classList.add('viz-full');
+  }
+
+  // Switch legends
+  ['Lissajous','Oscillo','Spectrum','Spectrogram','Vector'].forEach(n => {
+    document.getElementById('legend'+n).style.display = 'none';
+  });
+  const legMap = { lissajous:'Lissajous', oscilloscope:'Oscillo', spectrum:'Spectrum', spectrogram:'Spectrogram', vectorscope:'Vector' };
+  document.getElementById('legend'+legMap[mode]).style.display = 'flex';
+
+  spectroImg = null;
+  resizeCanvas();
+  if (!S.playing) drawWaves(0);
+}
+
+// Trail buffer for Lissajous persistence
+const TRAIL_LEN = 1800;
+const trailX    = new Float32Array(TRAIL_LEN);
+const trailY    = new Float32Array(TRAIL_LEN);
+let   trailHead = 0;
+let   spectroImg = null;
+
+/** Master draw dispatcher — routes to active visualization */
+function drawWaves(t) {
+  updateIntPill(t);
+  if      (currentViz === 'lissajous')   { drawLissajous(t); drawSpectrumBars(t, 'wcSpectrum', false); }
+  else if (currentViz === 'oscilloscope') drawOscillo(t);
+  else if (currentViz === 'spectrum')     drawSpectrumBars(t, 'wcSpectrogram', true);
+  else if (currentViz === 'spectrogram')  drawSpectrogram(t);
+  else if (currentViz === 'vectorscope')  drawVectorscope(t);
+}
+
+function getCanvas(id) {
+  const c = document.getElementById(id);
+  return { c, cx: c.getContext('2d'), W: c.width, H: c.height };
+}
+
+/**
+ * Update the interference pill label based on instantaneous wave sum.
+ * "Amplitud máxima" = constructive (waves reinforce)
+ * "Amplitud moderada" = partial overlap
+ * "Cancelación de fase" = destructive (waves cancel)
+ */
+function updateIntPill(t) {
+  const sp = 0.0006;
+  const lF = Math.min(S.carrier, 40) / 40, rF = Math.min(S.carrier + S.beat, 40) / 40;
+  const lv = Math.sin(2 * Math.PI * lF * 0.8 + t * sp);
+  const rv = Math.sin(2 * Math.PI * rF * 0.8 + t * sp);
+  const midSum = Math.abs((lv + rv) / 2);
+  const pill = document.getElementById('intPill');
+  if (midSum > .6)  { pill.className = 'interference-pill ip-amp';    pill.textContent = t('intPillAmp'); }
+  else if (midSum > .25) { pill.className = 'interference-pill ip-mod'; pill.textContent = t('intPillMod'); }
+  else              { pill.className = 'interference-pill ip-cancel'; pill.textContent = t('intPillCancel'); }
+}
+
+/** Lissajous figure — X axis = left channel, Y axis = right channel */
+function drawLissajous(t) {
+  const { c, cx, W, H } = getCanvas('wcLissajous');
+  if (W < 10 || H < 10) return;
+  cx.fillStyle = 'rgba(6,10,16,.2)'; cx.fillRect(0, 0, W, H);
+
+  const cx0 = W/2, cy0 = H/2, r = Math.min(W,H) * .42;
+  cx.strokeStyle = 'rgba(80,180,200,.05)'; cx.lineWidth = .5;
+  [1,.66,.33].forEach(f => { cx.beginPath(); cx.arc(cx0,cy0,r*f,0,Math.PI*2); cx.stroke(); });
+  cx.beginPath(); cx.moveTo(cx0-r,cy0); cx.lineTo(cx0+r,cy0); cx.stroke();
+  cx.beginPath(); cx.moveTo(cx0,cy0-r); cx.lineTo(cx0,cy0+r); cx.stroke();
+
+  const sp = 0.0005;
+  const vL = S.carrier / 200 * 2, vR = (S.carrier + S.beat) / 200 * 2;
+  const lv = Math.sin(2 * Math.PI * vL * (t * sp));
+  const rv = Math.sin(2 * Math.PI * vR * (t * sp));
+
+  trailX[trailHead] = lv; trailY[trailHead] = rv;
+  trailHead = (trailHead + 1) % TRAIL_LEN;
+
+  // Breath modulation: orb scale affects Lissajous radius
+  const breathMod = S.phase === 'inhale' ?
+    1 + (performance.now() - phaseStart) / phaseDur * .12 :
+    1.12 - (performance.now() - phaseStart) / phaseDur * .12;
+  const rr = r * Math.max(.88, Math.min(1.12, breathMod || 1));
+
+  for (let i = 0; i < TRAIL_LEN - 1; i++) {
+    const idx  = (trailHead + i) % TRAIL_LEN;
+    const idx2 = (trailHead + i + 1) % TRAIL_LEN;
+    const age  = i / TRAIL_LEN;
+    const px1  = cx0 + trailX[idx]  * rr, py1 = cy0 + trailY[idx]  * rr;
+    const px2  = cx0 + trailX[idx2] * rr, py2 = cy0 + trailY[idx2] * rr;
+    const hue  = 180 + age * 60;
+    cx.strokeStyle = `hsla(${hue},70%,60%,${age*.85})`;
+    cx.lineWidth   = age > .85 ? 1.8 : .8;
+    cx.beginPath(); cx.moveTo(px1,py1); cx.lineTo(px2,py2); cx.stroke();
+  }
+
+  const px = cx0 + lv * rr, py = cy0 + rv * rr;
+  const grd = cx.createRadialGradient(px,py,0,px,py,10);
+  grd.addColorStop(0,'rgba(80,180,200,1)'); grd.addColorStop(1,'rgba(80,180,200,0)');
+  cx.beginPath(); cx.arc(px,py,10,0,Math.PI*2); cx.fillStyle=grd; cx.fill();
+
+  cx.fillStyle='rgba(80,180,200,.35)'; cx.font='7px DM Mono,monospace';
+  cx.fillText(`L:${S.carrier}Hz`,4,11);
+  cx.fillText(`R:${(S.carrier+S.beat).toFixed(1)}Hz`,4,21);
+  cx.fillText(`Δ:${S.beat.toFixed(1)}Hz`,4,31);
+}
+
+/** Spectrum bar chart — shows energy distribution around carrier frequencies */
+function drawSpectrumBars(t, canvasId, fullMode) {
+  const { c, cx, W, H } = getCanvas(canvasId);
+  if (W < 10 || H < 10) return;
+  cx.clearRect(0, 0, W, H);
+
+  const bars = fullMode ? 64 : 20;
+  const barW = (W - (bars + 1) * 2) / bars;
+  const fL = S.carrier, fR = S.carrier + S.beat;
+
+  for (let i = 0; i < bars; i++) {
+    const binFreq = 50 + (i / (bars-1)) * 750;
+    const dL = Math.abs(binFreq - fL), dR = Math.abs(binFreq - fR), dB = Math.abs(binFreq - S.beat);
+    const eL = Math.exp(-dL/22) * (0.7 + 0.3 * Math.sin(t*.0007 + i));
+    const eR = Math.exp(-dR/22) * (0.7 + 0.3 * Math.sin(t*.0009 + i*1.2));
+    const eB = Math.exp(-dB/8)  * (0.5 + 0.5 * Math.abs(Math.sin(t*.001 * S.beat)));
+    const hL = eL*H*.78, hR = eR*H*.78;
+    const x  = 2 + i*(barW+2);
+
+    const gL = cx.createLinearGradient(0,H,0,H-hL);
+    gL.addColorStop(0,'rgba(68,136,204,.95)'); gL.addColorStop(1,'rgba(80,180,200,.35)');
+    cx.fillStyle = gL; cx.fillRect(x, H-hL, barW/2-1, hL);
+
+    const gR = cx.createLinearGradient(0,H,0,H-hR);
+    gR.addColorStop(0,'rgba(224,85,85,.95)'); gR.addColorStop(1,'rgba(212,168,75,.35)');
+    cx.fillStyle = gR; cx.fillRect(x+barW/2, H-hR, barW/2-1, hR);
+
+    if (eB > .3) { cx.fillStyle=`rgba(212,168,75,${eB*.8})`; cx.fillRect(x-1, H-hL-4, barW+2, 3); }
+  }
+
+  if (fullMode) {
+    cx.fillStyle = 'rgba(80,180,200,.3)'; cx.font = '7px DM Mono,monospace';
+    cx.fillText('50Hz',4,H-4); cx.fillText('800Hz',W-46,H-4);
+    cx.fillText(`Portadora:${S.carrier}Hz · Beat:${S.beat.toFixed(1)}Hz`,4,11);
+  }
+}
+
+/** Oscilloscope — time-domain left, right, sum, and envelope */
+function drawOscillo(t) {
+  const { c, cx, W, H } = getCanvas('wcOscillo');
+  if (W < 10 || H < 10) return;
+  cx.clearRect(0, 0, W, H);
+
+  cx.strokeStyle = 'rgba(80,180,200,.04)'; cx.lineWidth = .5;
+  for (let i=1;i<6;i++) { cx.beginPath(); cx.moveTo(W*i/6,0); cx.lineTo(W*i/6,H); cx.stroke(); }
+  cx.beginPath(); cx.moveTo(0,H/2); cx.lineTo(W,H/2); cx.stroke();
+
+  const sp = 0.0008, vF = Math.min(S.beat, 20) / 20;
+  const lF = vF, rF = vF + (S.beat / 800);
+  const amp = H * .19, amp2 = H * .24;
+
+  function dW(fn, amp, col, al, lw, dash=[]) {
+    cx.beginPath(); cx.strokeStyle=col; cx.globalAlpha=al; cx.lineWidth=lw; cx.setLineDash(dash);
+    for (let x=0;x<W;x++) { const y=H/2-fn(x)*amp; x===0?cx.moveTo(x,y):cx.lineTo(x,y); }
+    cx.stroke(); cx.setLineDash([]); cx.globalAlpha=1;
+  }
+
+  dW(x => Math.sin(2*Math.PI*lF*(x/W)+t*sp), amp,  '#4488cc', .75, 1.5);
+  dW(x => Math.sin(2*Math.PI*rF*(x/W)+t*sp), amp,  '#e05555', .75, 1.5);
+  dW(x => (Math.sin(2*Math.PI*lF*(x/W)+t*sp)+Math.sin(2*Math.PI*rF*(x/W)+t*sp))*.5, amp2, '#50b4c8', 1, 2);
+  dW(x => Math.cos(2*Math.PI*(S.beat/60)*(x/W)+t*sp*.4), H*.3, '#d4a84b', .75, 1, [4,5]);
+
+  // Pink noise overlay if enabled
+  if (S.noise) {
+    const nb = getNoiseBuf(W);
+    cx.beginPath(); cx.strokeStyle='rgba(78,203,138,.25)'; cx.lineWidth=1; cx.globalAlpha=.4;
+    for (let x=0;x<W;x++) { const y=H/2+nb[x%nb.length]*H*.6; x===0?cx.moveTo(x,y):cx.lineTo(x,y); }
+    cx.stroke(); cx.globalAlpha=1;
+  }
+}
+
+/** Spectrogram — scrolling frequency vs time heat map */
+function drawSpectrogram(t) {
+  const { c, cx, W, H } = getCanvas('wcSpectrogram');
+  if (W < 10 || H < 10) return;
+
+  // Scroll existing image left by 2px
+  const img = cx.getImageData(0, 0, W, H);
+  const d = img.data;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W-2; x++) {
+      const src = (y*W+x+2)*4, dst = (y*W+x)*4;
+      d[dst]=d[src]; d[dst+1]=d[src+1]; d[dst+2]=d[src+2]; d[dst+3]=d[src+3];
+    }
+  }
+  cx.putImageData(img, 0, 0);
+
+  // Draw new column at right edge
+  const fL = S.carrier, fR = S.carrier + S.beat;
+  for (let y = 0; y < H; y++) {
+    const freq = 800 - y*(750/H);
+    const dL = Math.abs(freq-fL), dR = Math.abs(freq-fR), dB = Math.abs(freq-S.beat);
+    const eL = Math.exp(-dL/20) * (0.6+0.4*Math.sin(t*.0008));
+    const eR = Math.exp(-dR/20) * (0.6+0.4*Math.sin(t*.001));
+    const eB = Math.exp(-dB/6)  * (0.5+0.5*Math.abs(Math.sin(t*.001*S.beat)));
+    const e  = Math.min(1, eL+eR+eB);
+    let r, g, b;
+    if      (e < .25) { r=20+e*4*60; g=0;        b=e*4*100; }
+    else if (e < .5)  { const f=(e-.25)*4; r=60+f*10;  g=f*180;       b=100+f*100; }
+    else if (e < .75) { const f=(e-.5)*4;  r=70+f*140; g=180+f*30;    b=200-f*100; }
+    else              { const f=(e-.75)*4; r=210+f*44; g=210-f*125;   b=100-f*80;  }
+    cx.fillStyle = `rgb(${r|0},${g|0},${b|0})`; cx.fillRect(W-2, y, 2, 1);
+  }
+
+  cx.fillStyle='rgba(80,180,200,.45)'; cx.font='7px DM Mono,monospace';
+  [800,600,400,200,50].forEach(f => {
+    const y = (800-f)*(H/750);
+    cx.fillText(f+'Hz', 2, Math.min(H-2, Math.max(9,y)));
+  });
+
+  // Dashed frequency markers
+  cx.strokeStyle='rgba(212,168,75,.4)'; cx.lineWidth=1; cx.setLineDash([3,4]);
+  [fL,fR].forEach(f => {
+    const y = (800-f)*(H/750);
+    if (y>0 && y<H) { cx.beginPath(); cx.moveTo(0,y); cx.lineTo(W,y); cx.stroke(); }
+  });
+  cx.setLineDash([]);
+}
+
+/** Vectorscope — phase plot of left vs right, shows stereo width */
+function drawVectorscope(t) {
+  const { c, cx, W, H } = getCanvas('wcVector');
+  if (W < 10 || H < 10) return;
+  cx.fillStyle = 'rgba(6,10,16,.25)'; cx.fillRect(0, 0, W, H);
+
+  const cx0 = W/2, cy0 = H/2, r = Math.min(W,H) * .44;
+  cx.strokeStyle = 'rgba(80,180,200,.07)'; cx.lineWidth = .5;
+  [1,.75,.5,.25].forEach(f => { cx.beginPath(); cx.arc(cx0,cy0,r*f,0,Math.PI*2); cx.stroke(); });
+
+  const sp = 0.0005, fL = S.carrier/200*2, fR = (S.carrier+S.beat)/200*2;
+  cx.lineWidth = 1.5; cx.beginPath();
+  for (let i = 0; i < 200; i++) {
+    const tt = t*sp + i*.04;
+    const lv = Math.sin(2*Math.PI*fL*tt)*r, rv = Math.sin(2*Math.PI*fR*tt)*r;
+    const mx = cx0+(lv+rv)/2, sy = cy0+(lv-rv)/2;
+    const age = i/200;
+    cx.strokeStyle = `hsla(${190+age*40},70%,60%,${age*.8})`;
+    i===0 ? cx.moveTo(mx,sy) : cx.lineTo(mx,sy);
+    if (i%40===39) { cx.stroke(); cx.beginPath(); cx.moveTo(mx,sy); }
+  }
+  cx.stroke();
+
+  const lt=t*sp, lv=Math.sin(2*Math.PI*fL*lt)*r, rv=Math.sin(2*Math.PI*fR*lt)*r;
+  const mx=cx0+(lv+rv)/2, my=cy0+(lv-rv)/2;
+  const grd=cx.createRadialGradient(mx,my,0,mx,my,12);
+  grd.addColorStop(0,'rgba(80,180,200,1)'); grd.addColorStop(1,'rgba(80,180,200,0)');
+  cx.beginPath(); cx.arc(mx,my,12,0,Math.PI*2); cx.fillStyle=grd; cx.fill();
+}
+
+// ════════════════════════════════════════════════════
+// NOISE BUFFER (shared between audio and viz)
+// ════════════════════════════════════════════════════
+let _noiseBuf = null;
+function getNoiseBuf(len) {
+  if (_noiseBuf && _noiseBuf.length >= len) return _noiseBuf;
+  _noiseBuf = new Float32Array(len);
+  let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+  for (let i = 0; i < len; i++) {
+    const w = Math.random()*2-1;
+    b0=.99886*b0+w*.0555179; b1=.99332*b1+w*.0750759;
+    b2=.96900*b2+w*.153852;  b3=.86650*b3+w*.3104856;
+    b4=.55000*b4+w*.5329522; b5=-.7616*b5-w*.016898;
+    _noiseBuf[i]=(b0+b1+b2+b3+b4+b5+b6+w*.5362)*.11;
+    b6=w*.115926;
+  }
+  return _noiseBuf;
+}
+
+/** Resize all visible canvases to match container dimensions */
+function resizeCanvas() {
+  const cont = document.getElementById('vizContainer');
+  const cH = Math.max(60, cont.clientHeight);
+  ['wcLissajous','wcSpectrum','wcOscillo','wcSpectrogram','wcVector'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el.style.display === 'none') return;
+    el.width = el.offsetWidth || 200;
+    el.height = cH;
+  });
+  spectroImg = null;
+  if (!S.playing) drawWaves(0);
+}
+
+// ════════════════════════════════════════════════════
+// MOBILE SHEET
+// ════════════════════════════════════════════════════
+let currentMobTab = 'presets';
+
+function openMobSheet(tab) {
+  document.getElementById('mobSheet').classList.add('open');
+  mobSwitchTab(tab || currentMobTab);
+}
+function closeMobSheet() { document.getElementById('mobSheet').classList.remove('open'); }
+
+function mobSwitchTab(tab) {
+  currentMobTab = tab;
+  document.getElementById('mobTabPresets').classList.toggle('active',  tab === 'presets');
+  document.getElementById('mobTabControls').classList.toggle('active', tab === 'controls');
+  const body = document.getElementById('mobSheetBody');
+  if (tab === 'presets') {
+    body.innerHTML = document.getElementById('presetsPanel').innerHTML;
+    body.querySelectorAll('.preset-card').forEach(card => {
+      card.addEventListener('click', function(e) {
+        if (e.target.classList.contains('pc-info')) return;
+        // Find matching card in main panel and apply
+        const mainCard = document.querySelector(
+          `.col-left .preset-card[data-beat="${card.dataset.beat}"][data-carrier="${card.dataset.carrier}"][data-breath="${card.dataset.breath}"]`
+        );
+        if (mainCard) applyPreset(mainCard);
+        closeMobSheet();
+      });
+      const infoBtn = card.querySelector('.pc-info');
+      if (infoBtn) {
+        const band = card.dataset.band;
+        infoBtn.addEventListener('click', e => { e.stopPropagation(); openWizard(band); });
+      }
+    });
+  } else {
+    // Clone controls panel
+    body.innerHTML = document.getElementById('ctrlPanel').innerHTML;
+    body.querySelectorAll('input[type=range]').forEach(sl => {
+      const orig = document.getElementById(sl.id);
+      if (!orig) return;
+      sl.value = orig.value; setFill(sl);
+      sl.addEventListener('input', function() {
+        orig.value = this.value;
+        orig.dispatchEvent(new Event('input'));
+        setFill(this);
+      });
+    });
+  }
+}
+
+// ════════════════════════════════════════════════════
+// WIZARD DATA — educational overlays per preset band
+// ════════════════════════════════════════════════════
+const WIZARDS = {
+  delta: {
+    color: '#9b7de8', band: 'Delta · 0.5–4 Hz — Sueño Profundo',
+    steps: [
+      { label:'¿Qué es?', title:'Delta y el sistema glinfático',
+        body:`<strong>Delta (0.5–4 Hz)</strong> es la banda cerebral más lenta. Domina en sueño profundo sin REM — la fase donde el sistema glinfático activa su limpieza de beta-amiloide y tau.<br><br>Este preset usa <em>2.5 Hz de beat binaural</em> — en el centro de la banda delta — combinado con <em>3 respiraciones/min</em>, que activa el máximo tono vagal y la mayor amplitud de LCR pulsátil.<br><br>No es para quedarse dormido: es para inducir <em>vigilia delta</em> — un estado de profunda quietud con el sistema de limpieza cerebral activado.` },
+      { label:'Aplicación', title:'Cuándo y cómo usarlo',
+        body:`<strong>Mejor momento:</strong> Noche, antes de dormir. O en sesiones de restauración después de trabajo cognitivo intenso.<br><br><strong>Duración mínima:</strong> 20 minutos para comenzar a ver efectos en HRV.<br><br><strong>Postura:</strong> Recostado, con auriculares. La respiración a 3 rpm puede ser exigente — si sientes ansiedad, sube a 4 rpm.<br><br><em>Precaución:</em> Puede inducir somnolencia. No usar antes de conducir o tareas que requieran vigilancia.`,
+        tip:'Combina con ruido rosa activado. Estudios del NIH usaron 7 Hz binaural + ruido rosa sobre las frecuencias binaurales puras para mejorar la señal.' },
+    ]
+  },
+  theta: {
+    color: '#4488cc', band: 'Theta · 4–8 Hz — Meditación Profunda',
+    steps: [
+      { label:'¿Qué es?', title:'El estado theta: creatividad y memoria',
+        body:`<strong>Theta (4–8 Hz)</strong> domina en meditación profunda, hipnagogia (umbral sueño-vigilia), creatividad y acceso a memorias emocionales.<br><br>A 6 Hz, theta activity developed across the entire cortex within 10 minutes in controlled studies. El hipocampo sincroniza su actividad theta con la frecuencia respiratoria — la respiración y la memoria están directamente acopladas.` },
+      { label:'Respiración', title:'4 rpm — máxima activación vagal',
+        body:`<strong>4 respiraciones/min (0.067 Hz HRV)</strong> lleva el sistema nervioso autónomo a dominancia parasimpática profunda.<br><br>A esta velocidad, la oscilación de la presión intracraneal (LCR) se hace más pronunciada — activando el eje corazón-cerebro de forma más intensa que a 6 rpm.<br><br>El ratio 1:1 (exhala = inhala) es neutro. Si buscas mayor relajación, prueba 0.7 (exhala más larga).`,
+        tip:'En este estado el cerebro es muy receptivo a sugestión positiva y visualización. Es el estado que muchas tradiciones contemplan para meditación guiada.' },
+    ]
+  },
+  schumann: {
+    color: '#4ecb8a', band: 'Schumann · 7.83 Hz — Resonancia Terrestre',
+    steps: [
+      { label:'¿Qué es?', title:'La frecuencia de la cavidad Tierra-ionosfera',
+        body:`<strong>7.83 Hz</strong> es la frecuencia fundamental de resonancia de Schumann — la cavidad electromagnética entre la superficie terrestre y la ionosfera, excitada principalmente por rayos.<br><br>Coincide con la banda theta alta/alpha baja del EEG humano. Hay correlaciones publicadas entre variaciones de Schumann y cambios en EEG, aunque la causalidad directa no está establecida.<br><br>El campo de Schumann es extremadamente débil (~1 picoTesla). Lo más interesante: cuando estás en coherencia cardíaca + alpha cerebral, <em>ya estás en la misma banda naturalmente</em>.` },
+    ]
+  },
+  alpha: {
+    color: '#50b4c8', band: 'Alpha · 8–13 Hz — Coherencia Cardíaca',
+    steps: [
+      { label:'¿Qué es?', title:'Alpha y coherencia: el estado óptimo',
+        body:`<strong>Alpha (8–13 Hz)</strong> es el estado de relajación alerta — atento pero sin tensión. La banda estudiada más consistentemente para reducción de ansiedad y mejora de rendimiento cognitivo.<br><br>A <em>10 Hz</em>, el beat binaural coincide con el alpha peak medio de la mayoría de adultos. A <em>6 respiraciones/min (0.1 Hz HRV)</em>, el corazón entra en coherencia — el estado de máxima eficiencia cardiovascular.` },
+      { label:'Ciencia', title:'Coherencia cardíaca: lo que dice la evidencia',
+        body:`La HRV mediada vagalmente (vmHRV) es actualmente considerada un índice de control cognitivo top-down. Mayor vmHRV → mejor función ejecutiva, memoria, atención y lenguaje.<br><br>La <em>arritmia sinusal respiratoria</em> a 0.1 Hz es el marcador más robusto de coherencia. Este preset la maximiza.<br><br>Estudios del HeartMath Institute muestran que añadir emoción positiva genuina (gratitud) amplifica la coherencia más que cualquier técnica técnica.`,
+        tip:'Empieza siempre tus sesiones con este preset antes de cambiar a Theta o Delta. Establece la coherencia cardíaca como base.' },
+    ]
+  },
+  beta: {
+    color: '#d4a84b', band: 'Beta · 13–30 Hz — Foco',
+    steps: [
+      { label:'¿Qué es?', title:'Beta y el box breathing',
+        body:`<strong>Beta (13–30 Hz)</strong> domina en pensamiento activo, resolución de problemas y foco sostenido. El preset usa <em>16 Hz</em> de beat binaural — beta medio.<br><br>Combinado con <strong>Box Breathing (4-4-4-4)</strong>: inhala 4s, retiene lleno 4s, exhala 4s, retiene vacío 4s. Esta técnica equilibra el SNA y reduce el cortisol — usada por equipos SEAL de la Marina de EEUU para performance bajo presión.`,
+        tip:'Box breathing es ideal antes de una presentación, negociación difícil, o sesión de trabajo profundo. Hazlo 5 minutos antes de comenzar.' },
+    ]
+  },
+  gamma: {
+    color: '#e05555', band: 'Gamma · 25 Hz — Procesamiento Cognitivo',
+    steps: [
+      { label:'¿Qué es?', title:'Gamma: integración cognitiva alta',
+        body:`<strong>Gamma (>30 Hz)</strong> está asociado a procesamiento de información de alto nivel, binding perceptual (unir información de distintas áreas) y estados contemplativos avanzados en meditadores expertos.<br><br>A <em>25 Hz</em> estamos en la frontera Beta/Gamma — estimulante pero accesible. Notarás percepción más vívida y conexiones inesperadas entre ideas.`,
+        tip:'Gamma es estimulante, no relajante. Úsalo para trabajo creativo intenso o estudio. Máximo 20-30 minutos. Si sientes presión en la cabeza, pasa a Alpha.' },
+    ]
+  },
+  gamma40: {
+    color: '#ff6b6b', band: 'Gamma 40 Hz — Protocolo MIT',
+    steps: [
+      { label:'¿Qué es?', title:'40 Hz — La frecuencia más estudiada',
+        body:`<strong>40 Hz</strong> es la frecuencia Gamma más investigada científicamente. El laboratorio de Li-Huei Tsai (MIT, 2016–2023) demostró que estimulación multisensorial a 40 Hz reduce placas amiloides en modelos de Alzheimer hasta un <em>40–50%</em>.<br><br>El mecanismo propuesto: 40 Hz sincroniza las células gliales, aumentando la actividad del sistema glinfático — la red de limpieza cerebral que normalmente opera en delta durante el sueño.` },
+      { label:'Protocolo', title:'Cómo usarlo correctamente',
+        body:`<strong>Duración:</strong> 20–40 minutos/día. Los efectos se acumulan con práctica regular (semanas, no días).<br><br><strong>Portadora:</strong> 500 Hz — una de las más eficaces para transmitir 40 Hz con claridad.<br><br><strong>Ruido rosa activado:</strong> el MIT usa estimulación broadband + 40 Hz — actívalo en esta app.<br><br><em>Precaución:</em> No usar si tienes epilepsia o historial de convulsiones. Máximo 40 min continuos. No combinar con estimulantes.`,
+        tip:'Mejor momento: mañana, después de despertar. El cerebro recién descansado responde mejor a estimulación Gamma.' },
+    ]
+  },
+  nadi: {
+    color: '#4ecb8a', band: 'Nadi Shodhana — Equilibrio Hemisférico',
+    steps: [
+      { label:'¿Qué es?', title:'La respiración alternada y los hemisferios',
+        body:`<strong>Nadi Shodhana</strong> (respiración por fosas alternadas) es la técnica pranayama con mayor evidencia para equilibrio interhemisférico.<br><br>Investigación con EEG muestra que la respiración nasal activa diferencialmente el hipocampo ipsilateral — la fosa derecha activa el hemisferio derecho y viceversa. Alternar equilibra ambos.<br><br>Este preset simula la frecuencia del ciclo nasal natural (~90-120 min) a través del beat binaural 8 Hz — induciendo coherencia alpha interhemisférica.` },
+    ]
+  },
+  '478': {
+    color: '#9b7de8', band: '4-7-8 — Activación Parasimpática',
+    steps: [
+      { label:'¿Qué es?', title:'El 4-7-8 y el sistema nervioso',
+        body:`Desarrollado por Andrew Weil basado en pranayama clásico. La secuencia:<br><br>• <strong>4s inhala</strong> — carga el sistema<br>• <strong>7s retención pulmón lleno</strong> — activa barorreceptores, sube CO₂, modula amígdala<br>• <strong>8s exhala</strong> — activación vagal máxima, baja FC<br><br>La retención de 7 segundos es la clave: la presión intratorácica alta estimula los barorreceptores aórticos que envían señales calmantes directamente al tronco encefálico.` },
+    ]
+  },
+  box: {
+    color: '#d4a84b', band: 'Box Breathing — Equilibrio SNA',
+    steps: [
+      { label:'¿Qué es?', title:'La respiración cuadrada y el SNA',
+        body:`<strong>Box Breathing (4-4-4-4)</strong>: inhala 4s → retiene lleno 4s → exhala 4s → retiene vacío 4s.<br><br>Las <em>dos retenciones simétricas</em> crean un equilibrio exacto entre activación simpática (retención lleno = presión alta) y parasimpática (retención vacío = presión baja).<br><br>Es la técnica de regulación SNA más usada en entornos de alto rendimiento: militares, atletas, ejecutivos. Reduce cortisol sin inducir somnolencia — a diferencia de técnicas solo parasimpáticas.` },
+    ]
+  },
+  dispenza: {
+    color: '#9b7de8', band: 'Maha Bandha · Dispenza — Activación Pineal',
+    steps: [
+      { label:'¿Qué es?', title:'La retención con pulmón vacío y el LCR',
+        body:`La técnica de Joe Dispenza (contracción de periné + retención vacío + visualización) se corresponde con el <strong>Maha Bandha</strong> del pranayama clásico.<br><br>El mecanismo fisiológico plausible:<br>• La retención con pulmones vacíos crea presión negativa intratorácica<br>• La contracción del suelo pélvico (Mula Bandha) aumenta la presión intraabdominal<br>• Esto puede modificar el gradiente de presión del LCR entre sacro y cráneo<br><br>El efecto sobre la glándula pineal es especulativo, pero el efecto sobre la circulación del LCR tiene respaldo biofísico.`,
+        tip:'Empieza con retenciones cortas (10-15s). Aumenta gradualmente a 30-45s con práctica. NUNCA fuerces — si sientes mareo, para.' },
+    ]
+  },
+  wimhof: {
+    color: '#e8a020', band: 'Wim Hof Method — Activación Simpática',
+    steps: [
+      { label:'¿Qué es?', title:'El método Wim Hof: fisiología real',
+        body:`El método Wim Hof tiene 3 pilares: respiración, exposición al frío y mente. Esta app implementa el pilar respiratorio.<br><br><strong>Las 30 respiraciones profundas</strong> producen hiperventilación controlada: bajan el CO₂ (hipocapnia), suben el pH sanguíneo (alcalosis respiratoria), y activan el eje simpático-adrenal liberando epinefrina.<br><br><strong>La retención vacía</strong> crea hipoxia+hipercapnia gradual que activa reflejos de supervivencia y según estudios (Kox et al. 2014), permite a practicantes modular su respuesta inmune voluntariamente.` },
+      { label:'Protocolo', title:'Las 4 rondas — cómo funciona en esta app',
+        body:`<strong>Cada ronda:</strong><br>1. <em>30 respiraciones rápidas</em> — inhala profundo, exhala sin forzar (la app guía con pitidos)<br>2. <em>Retención vacío</em> — exhala completamente y aguanta. La app te muestra el tiempo. Toca ▶ para terminar cuando necesites respirar<br>3. <em>Respiración de recuperación</em> — inhala profundo, retiene 15s<br><br>Repite 4 rondas. El indicador de rondas en el orbe muestra tu progreso.`,
+        tip:'Hazlo siempre acostado. NUNCA en agua, conduciendo, o de pie. La hipocapnia puede causar desmayo en algunas personas.' },
+      { label:'Precauciones', title:'Contraindicaciones importantes',
+        body:`<strong>No practicar si:</strong><br>• Embarazo<br>• Epilepsia<br>• Problemas cardiovasculares<br>• Presión arterial alta no controlada<br><br><strong>Síntomas normales:</strong> Hormigueo en manos/cara (hipocapnia), ligero mareo, sensación de energía.<br><br><strong>Para inmediatamente si:</strong> Pérdida de consciencia, dolor de pecho, o malestar intenso.<br><br><em>Los efectos son acumulativos — con 3-4 semanas de práctica diaria los resultados son significativamente mayores.</em>` },
+    ]
+  },
+};
+
+// ════════════════════════════════════════════════════
+// WIZARD ENGINE
+// ════════════════════════════════════════════════════
+let wizCurrentStep = 0;
+let wizCurrentBand = null;
+let _pendingWizardPreset = null;
+
+function openWizard(band) {
+  const data = WIZARDS[band];
+  if (!data) return;
+  wizCurrentBand = band;
+  wizCurrentStep = 0;
+  _pendingWizardPreset = document.querySelector(`.preset-card[data-band="${band}"]`);
+  document.getElementById('wizDot').style.background = data.color;
+  document.getElementById('wizTitle2').textContent = data.band;
+  renderWizard();
+  document.getElementById('wizardOverlay').classList.add('open');
+}
+function closeWizard() { document.getElementById('wizardOverlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target === document.getElementById('wizardOverlay')) closeWizard(); }
+
+/** Render current wizard step content */
+function renderWizard() {
+  const data  = (WIZARD_CONTENT[LANG] && WIZARD_CONTENT[LANG][wizCurrentBand]) || WIZARD_CONTENT.es[wizCurrentBand];
+  if (!data) return;
+  const steps = data.steps;
+  const total = steps.length;
+  const cur   = wizCurrentStep;
+  const step  = steps[cur];
+
+  // Step dot bar
+  const dotsEl = document.getElementById('wizStepDots');
+  dotsEl.innerHTML = '';
+  steps.forEach((_,i) => {
+    const d = document.createElement('div');
+    d.className = 'wiz-step-dot' + (i===cur?' active':i<cur?' done':'');
+    d.onclick = () => { wizCurrentStep=i; renderWizard(); };
+    dotsEl.appendChild(d);
+  });
+
+  // Content
+  let html = `<div class="wiz-step active">
+    <div class="wiz-step-label">${t('wizStep')} ${cur+1} ${t('wizOf')} ${total} — ${step.label}</div>
+    <div class="wiz-step-title">${step.title}</div>
+    <div class="wiz-step-body">${step.body}</div>`;
+  if (step.tip)    html += `<div class="wiz-tip"><div class="wiz-tip-label">${t('wizTip')}</div>${step.tip}</div>`;
+  if (step.ranges) {
+    html += `<div class="wiz-range-table">`;
+    step.ranges.forEach(r => {
+      html += `<div class="wiz-range-row${r.hi?' highlight':''}"><div class="wiz-range-hz">${r.hz}</div><div class="wiz-range-desc">${r.desc}</div></div>`;
+    });
+    html += `</div>`;
+  }
+  html += '</div>';
+  document.getElementById('wizSteps').innerHTML = html;
+
+  // Nav buttons
+  const prev  = document.getElementById('wizPrev');
+  const next  = document.getElementById('wizNext');
+  const apply = document.getElementById('wizApply');
+  prev.style.display  = cur===0 ? 'none' : 'block';
+  next.style.display  = cur===total-1 ? 'none' : 'block';
+  apply.style.display = cur===total-1 ? 'block' : 'none';
+  prev.textContent  = t('wizPrev');
+  next.textContent  = t('wizNext');
+  apply.textContent = t('wizApply');
+}
+
+function wizStep(dir) {
+  const total = WIZARDS[wizCurrentBand].steps.length;
+  wizCurrentStep = Math.max(0, Math.min(total-1, wizCurrentStep+dir));
+  renderWizard();
+}
+function wizardApply() {
+  if (_pendingWizardPreset) applyPreset(_pendingWizardPreset);
+  closeWizard();
+}
+
+// ════════════════════════════════════════════════════
+// BIBLIOGRAPHY OVERLAY
+// ════════════════════════════════════════════════════
+function openBib()  { document.getElementById('bibOverlay').classList.add('open'); }
+function closeBib() { document.getElementById('bibOverlay').classList.remove('open'); }
+function handleBibOverlayClick(e) { if (e.target===document.getElementById('bibOverlay')) closeBib(); }
+function switchBibTab(el) {
+  document.querySelectorAll('.bib-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.bib-section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  const section = document.getElementById('bib-' + el.dataset.btab);
+  if (section) section.classList.add('active');
+}
+
+// ════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  ['sBpm','sRatio','sHoldFull','sHoldEmpty','sCarrier','sBeat','sVol'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) setFill(el);
+  });
+  setViz('lissajous');
+  updateReadout();
+  // Activate first preset card
+  document.querySelector('.preset-card').classList.add('active');
+  // Apply saved language preference
+  const savedLang = localStorage.getItem('coherencia_lang') || 'es';
+  setLang(savedLang);
+});
+
+// Persist language on change
+const _origSetLang = setLang;
+function setLang(lang) {
+  _origSetLang(lang);
+  try { localStorage.setItem('coherencia_lang', lang); } catch(e) {}
+}
+
+window.addEventListener('resize', resizeCanvas);
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && e.target.tagName !== 'INPUT') { e.preventDefault(); togglePlay(); }
+  if (e.code === 'Escape') { closeWizard(); closeBib(); closeMobSheet(); }
+});
+</script>
+</body>
+</html>
