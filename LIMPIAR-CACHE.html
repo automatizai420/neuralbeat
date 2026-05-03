@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Limpiar Caché - Coherencia</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(135deg, #060a10 0%, #0d1828 100%);
+  color: #7aa8b8;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.container {
+  background: #0a1220;
+  border: 1px solid rgba(80,180,200,0.2);
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 600px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+h1 {
+  color: #50b4c8;
+  font-size: 24px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+.version {
+  background: rgba(80,180,200,0.1);
+  border-left: 3px solid #50b4c8;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+.version-number {
+  font-size: 32px;
+  font-weight: bold;
+  color: #50b4c8;
+  text-align: center;
+  margin: 10px 0;
+}
+.section {
+  margin: 20px 0;
+}
+.section h2 {
+  color: #4ecb8a;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+.steps {
+  background: rgba(6,10,16,0.5);
+  border-radius: 8px;
+  padding: 15px;
+}
+.step {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(80,180,200,0.1);
+}
+.step:last-child {
+  border-bottom: none;
+}
+.step-number {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background: #50b4c8;
+  color: #060a10;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 24px;
+  font-weight: bold;
+  margin-right: 10px;
+  font-size: 12px;
+}
+.platform {
+  background: rgba(212,168,75,0.1);
+  border: 1px solid rgba(212,168,75,0.3);
+  border-radius: 6px;
+  padding: 12px;
+  margin: 10px 0;
+}
+.platform-name {
+  color: #d4a84b;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+.kbd {
+  background: #0d1828;
+  border: 1px solid rgba(80,180,200,0.3);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-family: monospace;
+  color: #50b4c8;
+  font-size: 12px;
+}
+.button {
+  display: block;
+  width: 100%;
+  background: linear-gradient(135deg, #50b4c8 0%, #2a7a90 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 15px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: transform 0.2s;
+}
+.button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(80,180,200,0.3);
+}
+.button:active {
+  transform: translateY(0);
+}
+.warning {
+  background: rgba(224,85,85,0.1);
+  border-left: 3px solid #e05555;
+  padding: 12px;
+  margin: 15px 0;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.success {
+  background: rgba(78,203,138,0.1);
+  border-left: 3px solid #4ecb8a;
+  padding: 12px;
+  margin: 15px 0;
+  border-radius: 4px;
+  font-size: 14px;
+  display: none;
+}
+.success.show {
+  display: block;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🔄 Actualización Requerida</h1>
+  
+  <div class="version">
+    <div style="text-align: center; color: #2e4a58; font-size: 12px; margin-bottom: 5px;">NUEVA VERSIÓN</div>
+    <div class="version-number">v7.1.0</div>
+    <div style="text-align: center; color: #2e4a58; font-size: 12px;">Build 2024-12-20</div>
+  </div>
+
+  <div class="warning">
+    ⚠️ <strong>Error detectado:</strong> Tu navegador está usando una versión antigua en caché. Necesitas limpiar el caché para cargar la versión corregida.
+  </div>
+
+  <div class="section">
+    <h2>🔧 Correcciones en v7.1.0</h2>
+    <div class="steps">
+      <div class="step">✅ Recursión infinita en setLang() corregida</div>
+      <div class="step">✅ Conflicto de variables (t vs timestamp) resuelto</div>
+      <div class="step">✅ Visualizaciones canvas funcionando</div>
+      <div class="step">✅ Sistema i18n completamente funcional</div>
+      <div class="step">✅ Overlays optimizados para móvil</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>📱 Cómo Limpiar el Caché</h2>
+    
+    <div class="platform">
+      <div class="platform-name">🖥️ Chrome / Edge (Desktop)</div>
+      <div class="step">
+        <span class="step-number">1</span>
+        Presiona <span class="kbd">Ctrl</span> + <span class="kbd">Shift</span> + <span class="kbd">Delete</span>
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        Selecciona "Imágenes y archivos en caché"
+      </div>
+      <div class="step">
+        <span class="step-number">3</span>
+        Haz clic en "Borrar datos"
+      </div>
+    </div>
+
+    <div class="platform">
+      <div class="platform-name">📱 Chrome (Android)</div>
+      <div class="step">
+        <span class="step-number">1</span>
+        Menú (⋮) → Historial → Borrar datos de navegación
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        Selecciona "Imágenes y archivos en caché"
+      </div>
+      <div class="step">
+        <span class="step-number">3</span>
+        Toca "Borrar datos"
+      </div>
+    </div>
+
+    <div class="platform">
+      <div class="platform-name">🍎 Safari (iOS)</div>
+      <div class="step">
+        <span class="step-number">1</span>
+        Ajustes → Safari
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        Borrar historial y datos de sitios web
+      </div>
+      <div class="step">
+        <span class="step-number">3</span>
+        Confirmar
+      </div>
+    </div>
+
+    <div class="platform">
+      <div class="platform-name">🦊 Firefox</div>
+      <div class="step">
+        <span class="step-number">1</span>
+        Presiona <span class="kbd">Ctrl</span> + <span class="kbd">Shift</span> + <span class="kbd">Delete</span>
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        Selecciona "Caché"
+      </div>
+      <div class="step">
+        <span class="step-number">3</span>
+        Haz clic en "Limpiar ahora"
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>⚡ Método Rápido (Todos los Navegadores)</h2>
+    <div class="steps">
+      <div class="step">
+        <span class="step-number">1</span>
+        Presiona <span class="kbd">Ctrl</span> + <span class="kbd">Shift</span> + <span class="kbd">R</span> (Windows/Linux)
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        O <span class="kbd">Cmd</span> + <span class="kbd">Shift</span> + <span class="kbd">R</span> (Mac)
+      </div>
+      <div class="step">
+        <span class="step-number">3</span>
+        Esto recarga la página ignorando el caché
+      </div>
+    </div>
+  </div>
+
+  <div class="success" id="successMsg">
+    ✅ <strong>¡Perfecto!</strong> Ahora abre index.html y verifica que en la consola aparezca: "🎵 Coherencia v7.1.0 loaded"
+  </div>
+
+  <button class="button" onclick="showSuccess()">
+    ✓ Ya Limpié el Caché
+  </button>
+
+  <button class="button" onclick="window.location.href='index.html'" style="background: linear-gradient(135deg, #4ecb8a 0%, #2a7a60 100%); margin-top: 10px;">
+    🚀 Abrir Coherencia v7.1.0
+  </button>
+</div>
+
+<script>
+function showSuccess() {
+  document.getElementById('successMsg').classList.add('show');
+}
+
+// Auto-detect if cache was cleared
+window.addEventListener('load', () => {
+  const version = '7.1.0';
+  console.log(`Checking version... Expected: ${version}`);
+  
+  // Try to detect if the new version is loaded
+  setTimeout(() => {
+    if (window.location.search.includes('cleared=true')) {
+      showSuccess();
+    }
+  }, 100);
+});
+</script>
+
+</body>
+</html>

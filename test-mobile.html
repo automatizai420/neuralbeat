@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Test Mobile - Coherencia</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #060a10;
+  color: #7aa8b8;
+  font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.test-info {
+  padding: 20px;
+  background: #0a1220;
+  margin: 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(80,180,200,0.2);
+}
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #0a1220;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  border-top: 1px solid rgba(80,180,200,0.2);
+}
+.play-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid #50b4c8;
+  background: transparent;
+  color: #50b4c8;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+.play-btn:active {
+  background: rgba(80,180,200,0.1);
+  transform: scale(0.95);
+}
+.stat {
+  text-align: center;
+}
+.stat-n {
+  font-size: 20px;
+  color: #50b4c8;
+  display: block;
+}
+.stat-l {
+  font-size: 10px;
+  color: #2e4a58;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+</style>
+</head>
+<body>
+
+<div class="test-info">
+  <h1 style="color: #50b4c8; margin-bottom: 10px;">🧪 Test Mobile View</h1>
+  <p style="margin-bottom: 10px;">Si puedes ver este mensaje y el botón ▶ abajo, el código funciona correctamente.</p>
+  <p style="font-size: 12px; color: #2e4a58;">
+    Viewport: <span id="vw"></span>px × <span id="vh"></span>px<br>
+    User Agent: <span id="ua" style="word-break: break-all;"></span>
+  </p>
+</div>
+
+<div class="bottom-bar">
+  <div class="stat">
+    <span class="stat-n" id="clicks">0</span>
+    <span class="stat-l">Clicks</span>
+  </div>
+  
+  <button class="play-btn" id="playBtn" onclick="testClick()">▶</button>
+  
+  <div class="stat">
+    <span class="stat-n">OK</span>
+    <span class="stat-l">Status</span>
+  </div>
+</div>
+
+<script>
+let clickCount = 0;
+
+function testClick() {
+  clickCount++;
+  document.getElementById('clicks').textContent = clickCount;
+  const btn = document.getElementById('playBtn');
+  btn.textContent = btn.textContent === '▶' ? '■' : '▶';
+  btn.style.borderColor = btn.textContent === '■' ? '#d4a84b' : '#50b4c8';
+  btn.style.color = btn.textContent === '■' ? '#d4a84b' : '#50b4c8';
+}
+
+// Show viewport info
+document.getElementById('vw').textContent = window.innerWidth;
+document.getElementById('vh').textContent = window.innerHeight;
+document.getElementById('ua').textContent = navigator.userAgent;
+
+window.addEventListener('resize', () => {
+  document.getElementById('vw').textContent = window.innerWidth;
+  document.getElementById('vh').textContent = window.innerHeight;
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Debug Visualizaciones</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #060a10;
+  color: #7aa8b8;
+  font-family: monospace;
+  padding: 20px;
+}
+.section {
+  background: #0a1220;
+  border: 1px solid rgba(80,180,200,0.2);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+h2 {
+  color: #50b4c8;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.info {
+  font-size: 11px;
+  line-height: 1.6;
+  color: #2e4a58;
+}
+.ok { color: #4ecb8a; }
+.error { color: #e05555; }
+.warning { color: #d4a84b; }
+canvas {
+  border: 1px solid rgba(80,180,200,0.3);
+  background: #0d1828;
+  display: block;
+  margin: 10px 0;
+}
+button {
+  background: transparent;
+  border: 1px solid #50b4c8;
+  color: #50b4c8;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: monospace;
+  margin: 5px;
+}
+button:active {
+  background: rgba(80,180,200,0.1);
+}
+#log {
+  background: #000;
+  color: #0f0;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 10px;
+}
+</style>
+</head>
+<body>
+
+<div class="section">
+  <h2>🔍 Diagnóstico de Canvas</h2>
+  <div class="info" id="canvasInfo">Cargando...</div>
+</div>
+
+<div class="section">
+  <h2>🎨 Test de Renderizado</h2>
+  <canvas id="testCanvas" width="300" height="150"></canvas>
+  <button onclick="testDraw()">Dibujar Test</button>
+  <button onclick="testAnimation()">Test Animación</button>
+  <button onclick="stopAnimation()">Detener</button>
+</div>
+
+<div class="section">
+  <h2>⏱️ Test de Contador</h2>
+  <div style="text-align: center; padding: 20px;">
+    <div style="font-size: 10px; color: #50b4c8; margin-bottom: 5px;">CONTADOR</div>
+    <div id="counter" style="font-size: 24px; color: #c8dde8;">0.0</div>
+  </div>
+  <button onclick="startCounter()">Iniciar Contador</button>
+  <button onclick="stopCounter()">Detener Contador</button>
+</div>
+
+<div class="section">
+  <h2>📊 Log de Eventos</h2>
+  <div id="log"></div>
+</div>
+
+<script>
+let animationId = null;
+let counterInterval = null;
+let counterValue = 0;
+
+function log(msg, type = 'info') {
+  const logEl = document.getElementById('log');
+  const time = new Date().toLocaleTimeString();
+  const color = type === 'error' ? '#e05555' : type === 'ok' ? '#4ecb8a' : '#50b4c8';
+  logEl.innerHTML += `<div style="color:${color}">[${time}] ${msg}</div>`;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+// Diagnóstico inicial
+function diagnose() {
+  const canvas = document.getElementById('testCanvas');
+  const info = document.getElementById('canvasInfo');
+  let html = '';
+  
+  // Check canvas support
+  if (canvas.getContext) {
+    html += '<div class="ok">✓ Canvas soportado</div>';
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      html += '<div class="ok">✓ Context 2D disponible</div>';
+    } else {
+      html += '<div class="error">✗ No se pudo obtener context 2D</div>';
+    }
+  } else {
+    html += '<div class="error">✗ Canvas NO soportado</div>';
+  }
+  
+  // Check dimensions
+  html += `<div class="info">Canvas size: ${canvas.width}×${canvas.height}px</div>`;
+  html += `<div class="info">Offset size: ${canvas.offsetWidth}×${canvas.offsetHeight}px</div>`;
+  html += `<div class="info">Client size: ${canvas.clientWidth}×${canvas.clientHeight}px</div>`;
+  
+  // Check requestAnimationFrame
+  if (window.requestAnimationFrame) {
+    html += '<div class="ok">✓ requestAnimationFrame disponible</div>';
+  } else {
+    html += '<div class="error">✗ requestAnimationFrame NO disponible</div>';
+  }
+  
+  // Check performance.now
+  if (window.performance && window.performance.now) {
+    html += '<div class="ok">✓ performance.now() disponible</div>';
+  } else {
+    html += '<div class="warning">⚠ performance.now() NO disponible</div>';
+  }
+  
+  info.innerHTML = html;
+  log('Diagnóstico completado', 'ok');
+}
+
+// Test de dibujo simple
+function testDraw() {
+  const canvas = document.getElementById('testCanvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Clear
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Background
+  ctx.fillStyle = '#0d1828';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Circle
+  ctx.beginPath();
+  ctx.arc(150, 75, 40, 0, Math.PI * 2);
+  ctx.strokeStyle = '#50b4c8';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  
+  // Text
+  ctx.fillStyle = '#c8dde8';
+  ctx.font = '16px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('Canvas OK!', 150, 80);
+  
+  log('Dibujo de test completado', 'ok');
+}
+
+// Test de animación
+function testAnimation() {
+  stopAnimation();
+  
+  const canvas = document.getElementById('testCanvas');
+  const ctx = canvas.getContext('2d');
+  let angle = 0;
+  
+  function animate() {
+    // Clear
+    ctx.fillStyle = '#0d1828';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Rotating circle
+    const x = 150 + Math.cos(angle) * 50;
+    const y = 75 + Math.sin(angle) * 30;
+    
+    ctx.beginPath();
+    ctx.arc(x, y, 20, 0, Math.PI * 2);
+    ctx.fillStyle = '#50b4c8';
+    ctx.fill();
+    
+    // Text
+    ctx.fillStyle = '#c8dde8';
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Angle: ${(angle * 180 / Math.PI).toFixed(0)}°`, 150, 140);
+    
+    angle += 0.05;
+    animationId = requestAnimationFrame(animate);
+  }
+  
+  animate();
+  log('Animación iniciada', 'ok');
+}
+
+function stopAnimation() {
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+    log('Animación detenida', 'info');
+  }
+}
+
+// Test de contador
+function startCounter() {
+  stopCounter();
+  counterValue = 10.0;
+  
+  counterInterval = setInterval(() => {
+    counterValue -= 0.1;
+    if (counterValue <= 0) {
+      counterValue = 0;
+      stopCounter();
+      log('Contador terminado', 'ok');
+    }
+    document.getElementById('counter').textContent = counterValue.toFixed(1);
+  }, 100);
+  
+  log('Contador iniciado', 'ok');
+}
+
+function stopCounter() {
+  if (counterInterval) {
+    clearInterval(counterInterval);
+    counterInterval = null;
+    log('Contador detenido', 'info');
+  }
+}
+
+// Run diagnosis on load
+window.addEventListener('load', () => {
+  diagnose();
+  log('Página cargada', 'ok');
+});
+</script>
+
+</body>
+</html>
