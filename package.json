@@ -2,10 +2,6 @@
   "name": "coherencia-neurocardiaca",
   "version": "7.0.0",
   "description": "Aplicación de coherencia neurocardíaca con frecuencias binaurales y técnicas de respiración",
-  "scripts": {
-    "build": "./build.sh",
-    "dev": "python3 -m http.server 8000"
-  },
   "keywords": [
     "binaural",
     "breathing",

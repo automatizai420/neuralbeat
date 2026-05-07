@@ -1,0 +1,9 @@
+node_modules/
+.git/
+.vscode/
+*.log
+*.md
+!README.md
+package-lock.json
+yarn.lock
+.DS_Store
