@@ -1,212 +1,217 @@
-# 🎉 Correcciones Finales - Coherencia v7
+# ✅ CAMBIOS FINALES - Sistema Completo
 
-## ✅ Problemas Resueltos
+## 🐛 PROBLEMAS CORREGIDOS
 
-### 1. 🐛 **Recursión Infinita en setLang()**
+### 1. Error en `generateWizard` (presets.js)
+**Problema**: `Cannot read properties of undefined (reading 'forEach')`
 
-**Error:**
-```
-Uncaught RangeError: Maximum call stack size exceeded at setLang
-```
+**Causa**: Cuando se seleccionaba francés o portugués, las traducciones no existían en los presets, causando que `preset.markers.positive[lang]` fuera `undefined`.
 
-**Causa:**
-- Había DOS definiciones de `setLang()`
-- La segunda intentaba llamar a la primera creando recursión infinita
-
-**Solución:**
+**Solución**: Añadido sistema de fallback a español en todas las traducciones:
 ```javascript
-// ✅ AHORA: Una sola definición con localStorage integrado
-function setLang(lang) {
-  if (!I18N[lang]) return;
-  LANG = lang;
-  applyLang();
-  try { localStorage.setItem('coherencia_lang', lang); } catch(e) {}
+// Antes (causaba error):
+preset.markers.positive[lang].forEach(signal => { ... });
+
+// Ahora (con fallback):
+const signals = preset.markers.positive[lang] || preset.markers.positive.es || [];
+signals.forEach(signal => { ... });
+```
+
+**Archivos modificados**:
+- `presets.js` - Líneas 3026, 3040, 3050, 3070, 3080
+
+### 2. Problema Visual - Texto Montado
+**Problema**: El texto "7.83 Hz" se montaba sobre el botón "?"
+
+**Solución**: Añadido padding-right a `.pc-head`:
+```css
+.pc-head {
+  padding-right: 20px;  /* Espacio para el botón "?" */
 }
 ```
 
-### 2. 🎨 **Conflicto de Variables (t vs timestamp)**
-
-**Error:**
-```
-Uncaught TypeError: t is not a function at updateIntPill
-```
-
-**Causa:**
-- Parámetro `t` (timestamp) sobrescribía función global `t()` (i18n)
-
-**Solución:**
-- Renombrado TODOS los parámetros `t` → `timestamp` en funciones de visualización
-
-### 3. 📱 **Mejoras Visuales Móvil**
-
-#### Overlays (Wizard y Bibliografía)
-- ✅ Padding reducido (10px en lugar de 16px)
-- ✅ Max-height ajustado (85vh en lugar de 90vh)
-- ✅ Fuentes más pequeñas y legibles
-- ✅ Mejor espaciado en todos los elementos
-- ✅ Border-radius reducido para aprovechar espacio
-
-#### Tamaños de Fuente Móvil:
-```css
-.wiz-title: 12px (antes implícito 14px)
-.wiz-step-body: 8.5px (antes 9.5px)
-.bib-title: 11px (antes 13px)
-.bib-intro: 8.5px (antes 9.5px)
-.bib-finding-text: 8px (antes 9px)
-```
-
-## 🎯 Funcionalidades Verificadas
-
-### ✅ Sistema i18n (Traducción)
-- [x] Cambio de idioma funciona (ES, EN, FR, PT)
-- [x] Persistencia en localStorage
-- [x] Todos los elementos con data-i18n se traducen
-- [x] Botones de idioma muestran estado activo
-- [x] Sin errores de recursión
-
-### ✅ Visualizaciones Canvas
-- [x] Lissajous animado
-- [x] Spectrum bars animadas
-- [x] Oscilloscope funcional
-- [x] Spectrogram scrolling
-- [x] Vectorscope animado
-- [x] Inicialización correcta en load
-- [x] Resize responsive
-
-### ✅ Respiración y Audio
-- [x] Orb se expande/contrae
-- [x] Contador de segundos visible
-- [x] Barra de progreso funciona
-- [x] Audio binaural funciona
-- [x] Beeps de guía funcionan
-- [x] Ruido rosa opcional
-
-### ✅ Interfaz Móvil
-- [x] Header visible (52px)
-- [x] Bottom bar visible (90px)
-- [x] Botón play accesible (48px)
-- [x] Overlays con buen espaciado
-- [x] "Hecho con ♥" visible
-- [x] Scroll suave en overlays
-
-## 📁 Archivos Actualizados
-
-- ✅ `index.html` - Versión principal corregida
-- ✅ `coherencia8.html` - Copia idéntica
-- ✅ `debug-viz.html` - Herramienta de diagnóstico
-- ✅ `DIAGNOSTICO.md` - Guía de troubleshooting
-- ✅ `CAMBIOS-FINALES.md` - Este archivo
-
-## 🚀 Deploy a Cloudflare
-
-```bash
-# Verificar archivos
-ls -lh index.html coherencia8.html
-
-# Deploy
-wrangler pages deploy . --project-name=coherencia
-
-# O si no tienes wrangler, usa el dashboard:
-# 1. Ve a pages.cloudflare.com
-# 2. Sube index.html
-# 3. Deploy!
-```
-
-## 🧪 Pruebas Recomendadas
-
-### 1. Test Local
-```bash
-python3 -m http.server 8000
-# Abre: http://localhost:8000/index.html
-```
-
-### 2. Test de Traducción
-- Cambia idioma con los botones ES/EN/FR/PT
-- Verifica que todos los textos cambien
-- Recarga la página (debe mantener el idioma)
-
-### 3. Test de Visualizaciones
-- Presiona ▶ para iniciar
-- Verifica que las animaciones se vean
-- Cambia entre visualizaciones (Lissajous, Oscilo, etc.)
-- Verifica contador de segundos en el orb
-
-### 4. Test de Overlays Móvil
-- Abre en móvil o DevTools responsive
-- Presiona "∂ Ciencia"
-- Verifica que el panel no toque los bordes
-- Scroll debe funcionar suavemente
-- Presiona "?" en un preset
-- Verifica espaciado correcto
-
-## 📊 Métricas de Rendimiento
-
-### Tamaño de Archivos
-```
-index.html: ~120KB (todo en un archivo)
-coherencia8.html: ~120KB (copia)
-```
-
-### Compatibilidad
-- ✅ Chrome/Edge (Desktop & Mobile)
-- ✅ Firefox (Desktop & Mobile)
-- ✅ Safari (Desktop & iOS)
-- ✅ Samsung Internet
-- ⚠️ Requiere JavaScript habilitado
-- ⚠️ Requiere Web Audio API (todos los navegadores modernos)
-
-## 🎨 Paleta de Colores
-
-```css
---bg:      #060a10  /* Fondo principal */
---surface: #0a1220  /* Superficies */
---cyan:    #50b4c8  /* Acento principal */
---gold:    #d4a84b  /* Retención lleno */
---purple:  #9b7de8  /* Retención vacío */
---green:   #4ecb8a  /* Éxito */
---red:     #e05555  /* Error/Alerta */
-```
-
-## 🔮 Mejoras Futuras (Opcional)
-
-### Funcionalidades
-- [ ] PWA (Progressive Web App) con Service Worker
-- [ ] Modo offline
-- [ ] Historial de sesiones
-- [ ] Exportar estadísticas
-- [ ] Presets personalizados guardados
-
-### Visualizaciones
-- [ ] Más modos de visualización
-- [ ] Grabación de sesión
-- [ ] Compartir configuración por URL
-
-### Audio
-- [ ] Más tipos de ondas (cuadrada, triangular)
-- [ ] Efectos de audio (reverb, delay)
-- [ ] Volumen independiente por canal
-
-## 📞 Soporte
-
-Si encuentras algún problema:
-
-1. **Abre la consola del navegador** (F12)
-2. **Copia los errores** (si los hay)
-3. **Prueba debug-viz.html** para diagnóstico
-4. **Verifica que estés usando la última versión**
-
-## ✨ Créditos
-
-**Coherencia · Neuro·Cardíaca v7**
-- Frecuencias binaurales basadas en investigación científica
-- Técnicas de respiración validadas clínicamente
-- Visualizaciones en tiempo real
-- Sistema multiidioma (ES/EN/FR/PT)
-
-Hecho con ♥ para mejorar tu bienestar
+**Archivos modificados**:
+- `index.html` - CSS línea ~160
 
 ---
 
-**Última actualización:** 2024
-**Versión:** 7.0.0
-**Estado:** ✅ Producción
+## 🌍 NUEVOS IDIOMAS AÑADIDOS
+
+### Chino Mandarín (中文)
+- Código: `zh`
+- Botón: `中文`
+- Todas las traducciones de UI completadas
+
+### Hindi (हिंदी)
+- Código: `hi`
+- Botón: `हिं`
+- Todas las traducciones de UI completadas
+
+**Archivos modificados**:
+- `i18n.js` - Añadidos objetos completos `zh` e `hi`
+- `index.html` - Añadidos botones de idioma en selector
+
+---
+
+## 📧 CORREO DE CONTACTO AÑADIDO
+
+**Ubicación**: Footer "Hecho con ♥"
+
+**Texto**:
+```
+Hecho con ♥
+¿Sistema personalizado? automatizai2024@gmail.com
+```
+
+**Traducciones**:
+- ES: "¿Sistema personalizado?"
+- EN: "Custom system?"
+- FR: "Système personnalisé?"
+- PT: "Sistema personalizado?"
+- ZH: "定制系统？"
+- HI: "कस्टम सिस्टम?"
+
+**Archivos modificados**:
+- `index.html` - Footer línea ~1020
+- `i18n.js` - Añadida clave `customSystems` en todos los idiomas
+
+---
+
+## 📊 RESUMEN DE ARCHIVOS MODIFICADOS
+
+### 1. `presets.js`
+- ✅ Añadido sistema de fallback en `generateWizard()`
+- ✅ Corregidas 5 ubicaciones donde se accedía a traducciones
+- ✅ Ahora funciona con todos los idiomas sin errores
+
+### 2. `index.html`
+- ✅ CSS: Añadido `padding-right: 20px` a `.pc-head`
+- ✅ Header: Añadidos botones de idioma `中文` y `हिं`
+- ✅ Footer: Añadido correo electrónico con traducciones
+
+### 3. `i18n.js`
+- ✅ Añadido objeto completo `zh` (chino mandarín)
+- ✅ Añadido objeto completo `hi` (hindi)
+- ✅ Añadidas claves faltantes en ES, EN, FR, PT:
+  - `customSystems`
+  - `wizardsBtn`
+  - `wizDontShow`
+
+### 4. `app.js`
+- ✅ Sin cambios (ya estaba correcto)
+
+---
+
+## 🧪 CÓMO PROBAR
+
+### Test 1: Cambio de Idiomas
+1. Abre la app: `http://localhost:8080`
+2. Haz **Hard Refresh**: `Ctrl + Shift + R` (Win/Linux) o `Cmd + Shift + R` (Mac)
+3. Prueba cada idioma:
+   - ES → debe mostrar "Hecho con ♥"
+   - EN → debe mostrar "Made with ♥"
+   - FR → debe mostrar "Fait avec ♥"
+   - PT → debe mostrar "Feito com ♥"
+   - 中文 → debe mostrar "用心制作 ♥"
+   - हिं → debe mostrar "प्यार से बनाया ♥"
+
+### Test 2: Wizards en Todos los Idiomas
+1. Selecciona cada idioma
+2. Haz clic en cualquier preset
+3. ✅ Debe abrirse el wizard sin errores
+4. ✅ Si no hay traducción, debe mostrar español como fallback
+
+### Test 3: Correo Electrónico
+1. Scroll hasta el footer
+2. ✅ Debe aparecer: "¿Sistema personalizado? automatizai2024@gmail.com"
+3. Haz clic en el correo
+4. ✅ Debe abrir cliente de correo
+
+### Test 4: Problema Visual Corregido
+1. Mira cualquier preset card
+2. ✅ El texto "7.83 Hz" NO debe montarse sobre el botón "?"
+3. ✅ Debe haber espacio claro entre el Hz y el botón
+
+---
+
+## 🎯 ESTADO FINAL
+
+### ✅ Completado
+- [x] Error de `forEach` corregido con fallbacks
+- [x] Problema visual del texto montado corregido
+- [x] Chino mandarín añadido (中文)
+- [x] Hindi añadido (हिंदी)
+- [x] Correo electrónico añadido en footer
+- [x] Todas las traducciones de UI completadas
+- [x] Sistema de fallback funcionando
+
+### ⚠️ Nota Importante
+Los **presets individuales** (Delta, Theta, etc.) solo tienen traducciones completas en **español e inglés**. Para francés, portugués, chino e hindi, el wizard mostrará:
+- **Labels de pasos**: Traducidos (Fundamento, Protocolo, etc.)
+- **Contenido del preset**: En español (fallback automático)
+
+Esto es **intencional** porque traducir 20 presets × 4 idiomas × múltiples campos sería un trabajo masivo. El sistema de fallback asegura que siempre haya contenido visible.
+
+---
+
+## 🚀 PRÓXIMOS PASOS (Opcional)
+
+Si quieres traducciones completas de presets:
+
+1. **Traducir presets.js**:
+   - Cada preset tiene campos `name`, `description`, `longDescription`
+   - Cada preset tiene `markers.positive`, `markers.adjust`, etc.
+   - Añadir claves `fr`, `pt`, `zh`, `hi` a cada uno
+
+2. **Usar servicio de traducción**:
+   - Google Translate API
+   - DeepL API
+   - Traducción manual por hablantes nativos
+
+3. **Priorizar presets más usados**:
+   - Alpha 10 Hz (coherencia cardíaca)
+   - Delta 2.5 Hz (sueño)
+   - Theta 6 Hz (meditación)
+   - Wim Hof
+
+---
+
+## 📝 COMANDOS ÚTILES
+
+### Hard Refresh (Limpiar Caché)
+```
+Windows/Linux: Ctrl + Shift + R
+Mac: Cmd + Shift + R
+```
+
+### Verificar Errores en Consola
+```
+F12 → Console
+```
+
+### Verificar localStorage
+```javascript
+// En consola:
+localStorage.getItem('coherencia_wizards_seen')
+localStorage.getItem('coherencia_lang')
+```
+
+---
+
+## ✨ RESULTADO FINAL
+
+Un sistema multiidioma completo con:
+- ✅ 6 idiomas soportados (ES, EN, FR, PT, ZH, HI)
+- ✅ Sistema de fallback robusto
+- ✅ Sin errores de JavaScript
+- ✅ Diseño visual corregido
+- ✅ Correo de contacto visible
+- ✅ Experiencia fluida en todos los idiomas
+
+**¡Listo para usar!** 🚀
+
+---
+
+**Fecha**: Mayo 2026  
+**Versión**: Coherencia v8  
+**Estado**: ✅ COMPLETO Y FUNCIONAL

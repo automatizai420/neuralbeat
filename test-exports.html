@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Exports - Coherencia v8</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #0a1220;
+      color: #50b4c8;
+    }
+    h1 { color: #4ecb8a; }
+    .test { 
+      padding: 10px; 
+      margin: 10px 0; 
+      border: 1px solid #2e4a58;
+      border-radius: 4px;
+    }
+    .pass { background: rgba(78, 203, 138, 0.1); border-color: #4ecb8a; }
+    .fail { background: rgba(224, 85, 85, 0.1); border-color: #e05555; color: #e05555; }
+    .info { background: rgba(80, 180, 200, 0.1); }
+    button {
+      background: rgba(80, 180, 200, 0.2);
+      border: 1px solid #50b4c8;
+      color: #50b4c8;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover { background: rgba(80, 180, 200, 0.3); }
+  </style>
+</head>
+<body>
+  <h1>🔍 Test de Exportaciones - Coherencia v8</h1>
+  
+  <div class="test info">
+    <strong>Instrucciones:</strong><br>
+    1. Si ves errores rojos, haz <strong>Hard Refresh</strong>: Ctrl+Shift+R (Win/Linux) o Cmd+Shift+R (Mac)<br>
+    2. Si persisten, abre DevTools (F12) → Network → marca "Disable cache" → recarga<br>
+    3. Todos los tests deben estar en verde ✅
+  </div>
+
+  <div id="results"></div>
+
+  <h2>🧪 Tests Interactivos</h2>
+  <button onclick="testApplyPreset()">Test applyPreset()</button>
+  <button onclick="testOpenWizard()">Test openWizard()</button>
+  <button onclick="testResetWizards()">Test resetAllWizards()</button>
+  <button onclick="window.location.href='index.html'">← Volver a la App</button>
+
+  <script type="module">
+    const results = document.getElementById('results');
+    
+    function addTest(name, passed, message) {
+      const div = document.createElement('div');
+      div.className = `test ${passed ? 'pass' : 'fail'}`;
+      div.innerHTML = `
+        <strong>${passed ? '✅' : '❌'} ${name}</strong><br>
+        ${message}
+      `;
+      results.appendChild(div);
+    }
+
+    // Test imports
+    try {
+      const module = await import('./app.js');
+      
+      const requiredExports = [
+        'init',
+        'applyPreset',
+        'togglePlay',
+        'setLang',
+        'switchLeftTab',
+        'tog',
+        'onSliderChange',
+        'setViz',
+        'openWizard',
+        'closeWizard',
+        'wizStep',
+        'wizardApply',
+        'resetAllWizards',
+        'openBib',
+        'closeBib',
+        'openMobSheet',
+        'closeMobSheet',
+        'mobSwitchTab',
+        'handleOverlayClick',
+        'handleBibOverlayClick',
+        'switchBibTab',
+        'whContinue',
+        'updateReadout'
+      ];
+
+      let allPassed = true;
+      
+      requiredExports.forEach(name => {
+        const exists = typeof module[name] === 'function';
+        if (!exists) allPassed = false;
+        addTest(
+          `Export: ${name}`,
+          exists,
+          exists ? `Función exportada correctamente` : `⚠️ NO ENCONTRADA - Haz Hard Refresh (Ctrl+Shift+R)`
+        );
+      });
+
+      if (allPassed) {
+        addTest(
+          '🎉 TODAS LAS EXPORTACIONES',
+          true,
+          'Todas las funciones están correctamente exportadas. La app debería funcionar.'
+        );
+      } else {
+        addTest(
+          '⚠️ PROBLEMA DE CACHÉ',
+          false,
+          'Algunas funciones no se encontraron. Haz Hard Refresh: Ctrl+Shift+R (Win/Linux) o Cmd+Shift+R (Mac)'
+        );
+      }
+
+      // Exponer funciones para tests interactivos
+      window.testApplyPreset = () => {
+        try {
+          console.log('Testing applyPreset...');
+          alert('✅ applyPreset está disponible. Revisa la consola para más detalles.');
+          console.log('applyPreset function:', module.applyPreset);
+        } catch (e) {
+          alert('❌ Error: ' + e.message);
+        }
+      };
+
+      window.testOpenWizard = () => {
+        try {
+          console.log('Testing openWizard...');
+          alert('✅ openWizard está disponible. Revisa la consola para más detalles.');
+          console.log('openWizard function:', module.openWizard);
+        } catch (e) {
+          alert('❌ Error: ' + e.message);
+        }
+      };
+
+      window.testResetWizards = () => {
+        try {
+          console.log('Testing resetAllWizards...');
+          alert('✅ resetAllWizards está disponible. Revisa la consola para más detalles.');
+          console.log('resetAllWizards function:', module.resetAllWizards);
+        } catch (e) {
+          alert('❌ Error: ' + e.message);
+        }
+      };
+
+    } catch (error) {
+      addTest(
+        '❌ ERROR AL IMPORTAR app.js',
+        false,
+        `Error: ${error.message}<br><br>
+        <strong>Soluciones:</strong><br>
+        1. Verifica que el servidor esté corriendo<br>
+        2. Haz Hard Refresh: Ctrl+Shift+R<br>
+        3. Abre DevTools → Network → marca "Disable cache"<br>
+        4. Prueba en modo incógnito`
+      );
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Wizard System</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #0a1220; color: #7aa8b8; }
+    button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+    .success { color: #4ecb8a; }
+    .error { color: #e05555; }
+    .info { color: #50b4c8; }
+    pre { background: #060a10; padding: 10px; border-radius: 4px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>🧪 Test del Sistema de Wizards</h1>
+  
+  <h2>1. Verificar que las funciones existen</h2>
+  <button onclick="test1()">▶ Test 1: Verificar exports</button>
+  <pre id="result1"></pre>
+
+  <h2>2. Verificar que presets.js se puede importar</h2>
+  <button onclick="test2()">▶ Test 2: Importar presets.js</button>
+  <pre id="result2"></pre>
+
+  <h2>3. Generar un wizard de prueba</h2>
+  <button onclick="test3()">▶ Test 3: Generar wizard Delta</button>
+  <pre id="result3"></pre>
+
+  <h2>4. Abrir wizard en la UI</h2>
+  <button onclick="test4()">▶ Test 4: Abrir wizard Delta</button>
+  <pre id="result4"></pre>
+
+  <script type="module">
+    import { openWizard, closeWizard } from './app.js';
+    
+    window.openWizard = openWizard;
+    window.closeWizard = closeWizard;
+
+    window.test1 = function() {
+      const result = document.getElementById('result1');
+      let output = '';
+      
+      output += `✓ openWizard: ${typeof window.openWizard}\n`;
+      output += `✓ closeWizard: ${typeof window.closeWizard}\n`;
+      
+      if (typeof window.openWizard === 'function' && typeof window.closeWizard === 'function') {
+        output += '\n<span class="success">✅ PASS: Todas las funciones existen</span>';
+      } else {
+        output += '\n<span class="error">❌ FAIL: Faltan funciones</span>';
+      }
+      
+      result.innerHTML = output;
+    };
+
+    window.test2 = async function() {
+      const result = document.getElementById('result2');
+      try {
+        const module = await import('./presets.js');
+        let output = '';
+        
+        output += `✓ PRESETS: ${module.PRESETS ? module.PRESETS.length + ' presets' : 'undefined'}\n`;
+        output += `✓ generateWizard: ${typeof module.generateWizard}\n`;
+        output += `✓ getAllWizards: ${typeof module.getAllWizards}\n`;
+        
+        if (module.PRESETS && typeof module.generateWizard === 'function') {
+          output += '\n<span class="success">✅ PASS: presets.js se importa correctamente</span>';
+        } else {
+          output += '\n<span class="error">❌ FAIL: Problema con presets.js</span>';
+        }
+        
+        result.innerHTML = output;
+      } catch (error) {
+        result.innerHTML = `<span class="error">❌ ERROR: ${error.message}</span>`;
+      }
+    };
+
+    window.test3 = async function() {
+      const result = document.getElementById('result3');
+      try {
+        const module = await import('./presets.js');
+        const wizard = module.generateWizard('delta', 'es');
+        
+        let output = '';
+        output += `✓ Wizard ID: ${wizard.id}\n`;
+        output += `✓ Color: ${wizard.color}\n`;
+        output += `✓ Band: ${wizard.band}\n`;
+        output += `✓ Steps: ${wizard.steps.length}\n\n`;
+        
+        wizard.steps.forEach((step, i) => {
+          output += `  Paso ${i + 1}: ${step.label} - ${step.title}\n`;
+        });
+        
+        if (wizard.steps.length === 4) {
+          output += '\n<span class="success">✅ PASS: Wizard generado correctamente con 4 pasos</span>';
+        } else {
+          output += '\n<span class="error">❌ FAIL: Wizard no tiene 4 pasos</span>';
+        }
+        
+        result.innerHTML = output;
+      } catch (error) {
+        result.innerHTML = `<span class="error">❌ ERROR: ${error.message}\n${error.stack}</span>`;
+      }
+    };
+
+    window.test4 = function() {
+      const result = document.getElementById('result4');
+      try {
+        result.innerHTML = '<span class="info">⏳ Abriendo wizard...</span>';
+        
+        // Intentar abrir el wizard
+        window.openWizard('delta');
+        
+        // Verificar después de 500ms si se abrió
+        setTimeout(() => {
+          const overlay = document.getElementById('wizardOverlay');
+          if (overlay && overlay.classList.contains('open')) {
+            result.innerHTML = '<span class="success">✅ PASS: Wizard se abrió correctamente</span>\n\n' +
+                             '<button onclick="window.closeWizard()">Cerrar wizard</button>';
+          } else {
+            result.innerHTML = '<span class="error">❌ FAIL: Wizard no se abrió</span>\n' +
+                             'Verifica que index.html tiene el elemento #wizardOverlay';
+          }
+        }, 500);
+        
+      } catch (error) {
+        result.innerHTML = `<span class="error">❌ ERROR: ${error.message}\n${error.stack}</span>`;
+      }
+    };
+  </script>
+</body>
+</html>

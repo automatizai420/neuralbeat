@@ -143,6 +143,7 @@ body{
 .preset-card[data-band="beta"]::before    {background:#d4a84b;}
 .preset-card[data-band="gamma"]::before   {background:#e05555;}
 .preset-card[data-band="gamma40"]::before {background:#ff6b6b;}
+.preset-card[data-band="healing"]::before {background:#4ecb8a;}
 
 /* Active border per band */
 .preset-card.active[data-band="delta"]   {border-color:rgba(155,125,232,.5);}
@@ -152,6 +153,7 @@ body{
 .preset-card.active[data-band="beta"]    {border-color:rgba(212,168,75,.5);}
 .preset-card.active[data-band="gamma"]   {border-color:rgba(224,85,85,.5);}
 .preset-card.active[data-band="gamma40"] {border-color:rgba(255,107,107,.5);}
+.preset-card.active[data-band="healing"] {border-color:rgba(78,203,138,.5);}
 
 .pc-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:2px;}
 .pc-band{font-family:var(--mono);font-size:7px;letter-spacing:2px;text-transform:uppercase;opacity:.75;}
@@ -684,6 +686,72 @@ input[type=range]::-webkit-slider-thumb{
         <button class="pc-info" onclick="openWizard('gamma');event.stopPropagation()">?</button>
       </div>
 
+      <!-- HEALTH & HEALING section -->
+      <div class="preset-section-hdr" data-i18n="sectionHealth">Salud &amp; Sanación</div>
+
+      <div class="preset-card" data-band="healing"
+           data-beat="528" data-carrier="200" data-bpm="5" data-ratio="1.0"
+           data-breath="coherencia" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#4ecb8a">528 Hz</span><span class="pc-hz">Solfeggio</span></div>
+        <div class="pc-benefit" data-i18n="preset528Benefit">Reparación ADN</div>
+        <div class="pc-params"><span class="pc-tag">200 Hz</span><span class="pc-tag">5 rpm</span></div>
+        <button class="pc-info" onclick="openWizard('hz528');event.stopPropagation()">?</button>
+      </div>
+
+      <div class="preset-card" data-band="healing"
+           data-beat="432" data-carrier="200" data-bpm="5" data-ratio="1.0"
+           data-breath="coherencia" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#50b4c8">432 Hz</span><span class="pc-hz">Universal</span></div>
+        <div class="pc-benefit" data-i18n="preset432Benefit">Armonía Natural</div>
+        <div class="pc-params"><span class="pc-tag">200 Hz</span><span class="pc-tag">5 rpm</span></div>
+        <button class="pc-info" onclick="openWizard('hz432');event.stopPropagation()">?</button>
+      </div>
+
+      <div class="preset-card" data-band="healing"
+           data-beat="777" data-carrier="200" data-bpm="4" data-ratio="1.0"
+           data-breath="coherencia" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#9b7de8">777 Hz</span><span class="pc-hz">Espiritual</span></div>
+        <div class="pc-benefit" data-i18n="preset777Benefit">Sanación Profunda</div>
+        <div class="pc-params"><span class="pc-tag">200 Hz</span><span class="pc-tag">4 rpm</span></div>
+        <button class="pc-info" onclick="openWizard('hz777');event.stopPropagation()">?</button>
+      </div>
+
+      <div class="preset-card" data-band="healing"
+           data-beat="174" data-carrier="200" data-bpm="6" data-ratio="1.0"
+           data-breath="coherencia" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#e05555">174 Hz</span><span class="pc-hz">Analgésico</span></div>
+        <div class="pc-benefit" data-i18n="preset174Benefit">Alivio del Dolor</div>
+        <div class="pc-params"><span class="pc-tag">200 Hz</span><span class="pc-tag">6 rpm</span></div>
+        <button class="pc-info" onclick="openWizard('hz174');event.stopPropagation()">?</button>
+      </div>
+
+      <div class="preset-card" data-band="healing"
+           data-beat="396" data-carrier="200" data-bpm="5" data-ratio="1.0"
+           data-breath="coherencia" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#e8a020">396 Hz</span><span class="pc-hz">Liberación</span></div>
+        <div class="pc-benefit" data-i18n="preset396Benefit">Libera Miedo</div>
+        <div class="pc-params"><span class="pc-tag">200 Hz</span><span class="pc-tag">5 rpm</span></div>
+        <button class="pc-info" onclick="openWizard('hz396');event.stopPropagation()">?</button>
+      </div>
+
+      <div class="preset-card" data-band="healing"
+           data-beat="639" data-carrier="200" data-bpm="6" data-ratio="1.0"
+           data-breath="coherencia" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#d4a84b">639 Hz</span><span class="pc-hz">Conexión</span></div>
+        <div class="pc-benefit" data-i18n="preset639Benefit">Relaciones</div>
+        <div class="pc-params"><span class="pc-tag">200 Hz</span><span class="pc-tag">6 rpm</span></div>
+        <button class="pc-info" onclick="openWizard('hz639');event.stopPropagation()">?</button>
+      </div>
+
+      <div class="preset-card" data-band="healing"
+           data-beat="852" data-carrier="200" data-bpm="4" data-ratio="1.0"
+           data-breath="coherencia" onclick="applyPreset(this)">
+        <div class="pc-head"><span class="pc-band" style="color:#9b7de8">852 Hz</span><span class="pc-hz">Intuición</span></div>
+        <div class="pc-benefit" data-i18n="preset852Benefit">Despertar Espiritual</div>
+        <div class="pc-params"><span class="pc-tag">200 Hz</span><span class="pc-tag">4 rpm</span></div>
+        <button class="pc-info" onclick="openWizard('hz852');event.stopPropagation()">?</button>
+      </div>
+
       <!-- PRANAYAMA section -->
       <div class="preset-section-hdr" data-i18n="sectionPranayama">Pranayama &amp; Retención</div>
 
@@ -1062,6 +1130,7 @@ const I18N = {
 
     // Preset section headers
     sectionBinaural: 'Binaural',
+    sectionHealth: 'Salud & Sanación',
     sectionPranayama: 'Pranayama & Retención',
 
     // Preset benefits
@@ -1073,6 +1142,13 @@ const I18N = {
     presetBetaBenefit: 'Foco & Productividad',
     presetGamma40Benefit: 'Protocolo MIT 40 Hz',
     presetGamma25Benefit: 'Procesamiento Cognitivo',
+    preset528Benefit: 'Reparación ADN',
+    preset432Benefit: 'Armonía Natural',
+    preset777Benefit: 'Sanación Profunda',
+    preset174Benefit: 'Alivio del Dolor',
+    preset396Benefit: 'Libera Miedo',
+    preset639Benefit: 'Relaciones',
+    preset852Benefit: 'Despertar Espiritual',
     presetNadiHz: 'Alterna',
     presetNadiBenefit: 'Equilibrio Hemisférico',
     preset478Hz: 'Relajación',
@@ -1185,6 +1261,7 @@ const I18N = {
     tabPrograms: 'Programs',
     tabControls: 'Controls',
     sectionBinaural: 'Binaural',
+    sectionHealth: 'Health & Healing',
     sectionPranayama: 'Pranayama & Retention',
     presetDeltaBenefit: 'Deep Sleep',
     presetThetaBenefit: 'Deep Meditation',
@@ -1194,6 +1271,13 @@ const I18N = {
     presetBetaBenefit: 'Focus & Productivity',
     presetGamma40Benefit: 'MIT 40 Hz Protocol',
     presetGamma25Benefit: 'Cognitive Processing',
+    preset528Benefit: 'DNA Repair',
+    preset432Benefit: 'Natural Harmony',
+    preset777Benefit: 'Deep Healing',
+    preset174Benefit: 'Pain Relief',
+    preset396Benefit: 'Release Fear',
+    preset639Benefit: 'Relationships',
+    preset852Benefit: 'Spiritual Awakening',
     presetNadiHz: 'Alternate',
     presetNadiBenefit: 'Hemispheric Balance',
     preset478Hz: 'Relaxation',
@@ -1293,6 +1377,7 @@ const I18N = {
     tabPrograms: 'Programmes',
     tabControls: 'Contrôles',
     sectionBinaural: 'Binaural',
+    sectionHealth: 'Santé & Guérison',
     sectionPranayama: 'Pranayama & Rétention',
     presetDeltaBenefit: 'Sommeil Profond',
     presetThetaBenefit: 'Méditation Profonde',
@@ -1302,6 +1387,13 @@ const I18N = {
     presetBetaBenefit: 'Focus & Productivité',
     presetGamma40Benefit: 'Protocole MIT 40 Hz',
     presetGamma25Benefit: 'Traitement Cognitif',
+    preset528Benefit: 'Réparation ADN',
+    preset432Benefit: 'Harmonie Naturelle',
+    preset777Benefit: 'Guérison Profonde',
+    preset174Benefit: 'Soulagement Douleur',
+    preset396Benefit: 'Libère Peur',
+    preset639Benefit: 'Relations',
+    preset852Benefit: 'Éveil Spirituel',
     presetNadiHz: 'Alternée',
     presetNadiBenefit: 'Équilibre Hémisphérique',
     preset478Hz: 'Relaxation',
@@ -1401,6 +1493,7 @@ const I18N = {
     tabPrograms: 'Programas',
     tabControls: 'Controles',
     sectionBinaural: 'Binaural',
+    sectionHealth: 'Saúde & Cura',
     sectionPranayama: 'Pranayama & Retenção',
     presetDeltaBenefit: 'Sono Profundo',
     presetThetaBenefit: 'Meditação Profunda',
@@ -1410,6 +1503,13 @@ const I18N = {
     presetBetaBenefit: 'Foco & Produtividade',
     presetGamma40Benefit: 'Protocolo MIT 40 Hz',
     presetGamma25Benefit: 'Processamento Cognitivo',
+    preset528Benefit: 'Reparação DNA',
+    preset432Benefit: 'Harmonia Natural',
+    preset777Benefit: 'Cura Profunda',
+    preset174Benefit: 'Alívio da Dor',
+    preset396Benefit: 'Libera Medo',
+    preset639Benefit: 'Relacionamentos',
+    preset852Benefit: 'Despertar Espiritual',
     presetNadiHz: 'Alternada',
     presetNadiBenefit: 'Equilíbrio Hemisférico',
     preset478Hz: 'Relaxamento',
@@ -1608,6 +1708,76 @@ const WIZARD_CONTENT = {
           tip:'Hazlo siempre acostado. NUNCA en agua, conduciendo, o de pie. La hipocapnia puede causar desmayo en algunas personas.' },
         { label:'Precauciones', title:'Contraindicaciones importantes',
           body:`<strong>No practicar si:</strong><br>• Embarazo<br>• Epilepsia<br>• Problemas cardiovasculares<br>• Presión arterial alta no controlada<br><br><strong>Síntomas normales:</strong> Hormigueo en manos/cara (hipocapnia), ligero mareo, sensación de energía.<br><br><strong>Para inmediatamente si:</strong> Pérdida de consciencia, dolor de pecho, o malestar intenso.<br><br><em>Los efectos son acumulativos — con 3-4 semanas de práctica diaria los resultados son significativamente mayores.</em>` },
+      ]
+    },
+    hz528: {
+      color: '#4ecb8a', band: '528 Hz — Frecuencia de Reparación del ADN',
+      steps: [
+        { label:'¿Qué es?', title:'La frecuencia Solfeggio de transformación',
+          body:`<strong>528 Hz</strong> es conocida como la "frecuencia del amor" o "frecuencia de reparación del ADN" en la escala Solfeggio antigua.<br><br>Investigaciones del Dr. Leonard Horowitz sugieren que esta frecuencia puede influir en la estructura molecular del agua y potencialmente en la reparación del ADN. Estudios in vitro han mostrado que la exposición a 528 Hz puede reducir el estrés oxidativo celular.<br><br>Esta frecuencia resuena con el chakra del corazón y se asocia con transformación, milagros y sanación a nivel celular.` },
+        { label:'Aplicación', title:'Cómo usar esta frecuencia',
+          body:`<strong>Mejor momento:</strong> Mañana o tarde, en estado de relajación profunda.<br><br><strong>Duración:</strong> 20-30 minutos diarios para efectos acumulativos.<br><br><strong>Postura:</strong> Sentado o recostado, con intención de sanación. La respiración a 5 rpm (coherencia cardíaca) amplifica los efectos.<br><br><strong>Visualización:</strong> Imagina luz verde esmeralda fluyendo por tu cuerpo, reparando y renovando cada célula.`,
+          tip:'Combina con afirmaciones positivas. La intención consciente potencia los efectos de las frecuencias de sanación.' },
+      ]
+    },
+    hz432: {
+      color: '#50b4c8', band: '432 Hz — Frecuencia Universal Natural',
+      steps: [
+        { label:'¿Qué es?', title:'La afinación matemática del universo',
+          body:`<strong>432 Hz</strong> es considerada la "afinación natural" del universo. Matemáticamente, 432 es un número armónico que resuena con las proporciones del cosmos: la precesión de los equinoccios, el radio del Sol, y patrones fractales en la naturaleza.<br><br>A diferencia del estándar moderno de 440 Hz, 432 Hz se alinea con los ritmos naturales del cuerpo y la Tierra. Músicos reportan que esta afinación produce un sonido más cálido, claro y relajante.<br><br>Estudios preliminares sugieren que la música a 432 Hz puede reducir la frecuencia cardíaca y la presión arterial más efectivamente que 440 Hz.` },
+        { label:'Ciencia', title:'Resonancia con sistemas biológicos',
+          body:`La frecuencia de 432 Hz está matemáticamente relacionada con:<br>• <em>8 Hz</em> — frecuencia alpha cerebral (432 ÷ 54 = 8)<br>• <em>Resonancia Schumann</em> — 7.83 Hz (múltiplo armónico)<br>• <em>Geometría sagrada</em> — proporciones áureas<br><br>Esta coherencia matemática puede explicar por qué muchas personas reportan sensaciones de "estar en casa" o profunda paz al escuchar 432 Hz.`,
+          tip:'Ideal para meditación, estudio creativo, o como música de fondo durante el día. Promueve claridad mental sin estimulación excesiva.' },
+      ]
+    },
+    hz777: {
+      color: '#9b7de8', band: '777 Hz — Frecuencia de Sanación Espiritual',
+      steps: [
+        { label:'¿Qué es?', title:'La frecuencia de la conexión divina',
+          body:`<strong>777 Hz</strong> es considerada una frecuencia maestra de sanación espiritual y conexión con planos superiores de consciencia.<br><br>El número 777 tiene significado simbólico en múltiples tradiciones: representa perfección espiritual, despertar y alineación con el propósito divino.<br><br>Esta frecuencia trabaja en el chakra corona y el tercer ojo, facilitando estados de consciencia expandida, intuición profunda y conexión con la sabiduría interior.` },
+        { label:'Efectos', title:'Sanación multidimensional',
+          body:`<strong>Nivel físico:</strong> Relajación profunda del sistema nervioso, reducción de inflamación.<br><br><strong>Nivel emocional:</strong> Liberación de traumas almacenados, paz interior, perdón.<br><br><strong>Nivel espiritual:</strong> Apertura de canales intuitivos, claridad de propósito, conexión con guías espirituales.<br><br>La respiración lenta a 4 rpm sincroniza el sistema nervioso con esta frecuencia elevada.`,
+          tip:'Usa esta frecuencia en momentos de búsqueda espiritual, antes de meditaciones profundas, o cuando necesites claridad sobre tu camino de vida.' },
+      ]
+    },
+    hz174: {
+      color: '#e05555', band: '174 Hz — Analgésico Natural',
+      steps: [
+        { label:'¿Qué es?', title:'La frecuencia del alivio del dolor',
+          body:`<strong>174 Hz</strong> es la frecuencia más baja de la escala Solfeggio y actúa como un analgésico natural.<br><br>Investigaciones sugieren que las frecuencias bajas pueden influir en la percepción del dolor al modular la actividad del sistema nervioso central. 174 Hz específicamente se asocia con:<br>• Reducción de tensión muscular<br>• Alivio de dolor crónico<br>• Sensación de seguridad y protección<br><br>Esta frecuencia trabaja en el chakra raíz, promoviendo conexión con la tierra y estabilidad física.` },
+        { label:'Aplicación', title:'Protocolo para manejo del dolor',
+          body:`<strong>Para dolor agudo:</strong> 15-20 minutos, 2-3 veces al día.<br><br><strong>Para dolor crónico:</strong> 30 minutos diarios, preferiblemente antes de dormir.<br><br><strong>Respiración:</strong> 6 rpm (coherencia cardíaca) ayuda a activar el sistema parasimpático y potencia el efecto analgésico.<br><br><strong>Visualización:</strong> Imagina la frecuencia como ondas rojas que penetran el área de dolor, disolviendo la tensión.`,
+          tip:'No sustituye tratamiento médico. Úsalo como complemento. Si el dolor persiste o empeora, consulta a un profesional de salud.' },
+      ]
+    },
+    hz396: {
+      color: '#e8a020', band: '396 Hz — Liberación de Miedo y Culpa',
+      steps: [
+        { label:'¿Qué es?', title:'La frecuencia de la liberación emocional',
+          body:`<strong>396 Hz</strong> es la frecuencia Solfeggio asociada con la liberación de patrones emocionales negativos, especialmente miedo, culpa y trauma.<br><br>Esta frecuencia trabaja en el chakra raíz y el plexo solar, ayudando a:<br>• Liberar creencias limitantes<br>• Transformar el miedo en coraje<br>• Soltar culpa y vergüenza<br>• Establecer límites saludables<br><br>Neurofisiológicamente, puede ayudar a desactivar la respuesta de amenaza de la amígdala, permitiendo que el cerebro procese emociones difíciles de forma más equilibrada.` },
+        { label:'Protocolo', title:'Trabajo de liberación emocional',
+          body:`<strong>Preparación:</strong> Identifica una emoción o creencia que deseas liberar.<br><br><strong>Durante la sesión:</strong><br>1. Respira conscientemente a 5 rpm<br>2. Permite que la emoción surja sin resistencia<br>3. Visualiza la frecuencia como luz dorada que disuelve la densidad emocional<br>4. Afirma: "Libero lo que ya no me sirve"<br><br><strong>Duración:</strong> 20-30 minutos. Puede surgir llanto o liberación física — es parte del proceso.`,
+          tip:'Trabaja con una emoción a la vez. La liberación profunda es gradual. Sé paciente y compasivo contigo mismo.' },
+      ]
+    },
+    hz639: {
+      color: '#d4a84b', band: '639 Hz — Armonización de Relaciones',
+      steps: [
+        { label:'¿Qué es?', title:'La frecuencia de la conexión y el amor',
+          body:`<strong>639 Hz</strong> es la frecuencia Solfeggio del chakra del corazón, asociada con relaciones armoniosas, comunicación auténtica y conexión emocional.<br><br>Esta frecuencia ayuda a:<br>• Sanar relaciones dañadas<br>• Mejorar la comunicación<br>• Desarrollar empatía y compasión<br>• Atraer relaciones saludables<br>• Fortalecer vínculos familiares<br><br>Trabaja en el campo electromagnético del corazón, que según el HeartMath Institute, se extiende varios metros y puede influir en el estado emocional de otros.` },
+        { label:'Aplicación', title:'Sanación relacional',
+          body:`<strong>Para conflictos:</strong> Escucha esta frecuencia antes de conversaciones difíciles. Ayuda a abrir el corazón y reducir la defensividad.<br><br><strong>Para soledad:</strong> Úsala para elevar tu vibración emocional y atraer conexiones alineadas.<br><br><strong>Para relaciones existentes:</strong> Escúchala junto a tu pareja o familia para sincronizar campos electromagnéticos.<br><br><strong>Respiración:</strong> 6 rpm con visualización de luz verde-dorada expandiéndose desde tu corazón.`,
+          tip:'La coherencia cardíaca + 639 Hz + intención de amor es una combinación poderosa para transformar dinámicas relacionales.' },
+      ]
+    },
+    hz852: {
+      color: '#9b7de8', band: '852 Hz — Despertar de la Intuición',
+      steps: [
+        { label:'¿Qué es?', title:'La frecuencia del tercer ojo',
+          body:`<strong>852 Hz</strong> es la frecuencia Solfeggio asociada con el despertar de la intuición, clarividencia y conexión con la sabiduría superior.<br><br>Esta frecuencia trabaja en el chakra del tercer ojo (ajna) y ayuda a:<br>• Desarrollar percepción extrasensorial<br>• Clarificar visión interior<br>• Acceder a conocimiento intuitivo<br>• Disolver ilusiones mentales<br>• Conectar con guía espiritual<br><br>Neurofisiológicamente, puede estimular la glándula pineal, que produce melatonina y DMT endógeno, moléculas asociadas con estados místicos.` },
+        { label:'Protocolo', title:'Activación del tercer ojo',
+          body:`<strong>Preparación:</strong> Ambiente oscuro o con luz tenue. Postura sentada con columna erguida.<br><br><strong>Durante la sesión:</strong><br>1. Respira lentamente a 4 rpm<br>2. Enfoca atención en el punto entre las cejas<br>3. Visualiza luz índigo o violeta pulsando con la frecuencia<br>4. Permanece receptivo sin forzar visiones<br><br><strong>Duración:</strong> 15-30 minutos. Mejor en ayunas o 3 horas después de comer.<br><br><strong>Frecuencia:</strong> 3-4 veces por semana para desarrollo gradual.`,
+          tip:'La intuición se desarrolla con práctica constante. Lleva un diario de insights y sincronicidades que surjan después de las sesiones.' },
       ]
     },
   },
