@@ -4,7 +4,7 @@
 // ════════════════════════════════════════════════════
 
 import { PRESETS } from './presets.js';
-import { initAC, startBinaural, startTone, stopBinaural, startNoise, stopNoise, beep, setVolume, getAC, getMasterGain, resumeAC, whRecoveryTone, whRetentionTick, whReleaseBeep } from './audio.js';
+import { initAC, startBinaural, startTone, stopBinaural, startNoise, stopNoise, beep, setVolume, getAC, getMasterGain, resumeAC, retune, whRecoveryTone, whRetentionTick, whReleaseBeep } from './audio.js';
 import { BREATH_PRESETS, WH_DEFAULT, getPhaseDuration, getPhaseSequence, breathDur } from './breath.js';
 import { I18N } from './i18n.js';
 import { initViz, setViz, resizeCanvas, initAnalyser, animateViz } from './viz.js';
@@ -27,6 +27,7 @@ export const S = {
   cycles:        0,
   sessionSec:    0,
   breathPreset:  'coherencia',
+  customTiming:  false,     // true cuando el usuario mueve BPM/ratio
   activePreset:  null,      // NUEVO: referencia al objeto PRESETS[i] activo
   wh:            { ...WH_DEFAULT },
 };
@@ -81,6 +82,7 @@ export function applyPreset(id) {
   S.tone    = preset.audio.tone || null;  // null si no es healing
 
   // Breath params
+  S.customTiming = false;   // vuelve a los tiempos fijos de la técnica (box, 478)
   S.bpm     = preset.breathing.bpm || S.bpm;
   S.ratio   = preset.breathing.ratio || 1.0;
   S.breathPreset = preset.breathing.pattern;
@@ -110,6 +112,9 @@ export function applyPreset(id) {
 
   syncSliders();
   updateReadout();
+
+  // Móvil: cerrar el sheet para que el ▶ quede visible
+  if (isMobileLayout() && mobTab === 'presets') closeMobSheet();
 
   // Si está playing, DETENER para que el usuario pueda reiniciar con el nuevo preset
   if (S.playing) {
@@ -194,6 +199,7 @@ export function togglePlay() {
     resumeAC();
     initAnalyser();
     S.playing = true;
+    requestWakeLock();
     
     // Resetear contadores de sesión ANTES de iniciar respiración
     S.cycles = 0;
@@ -243,6 +249,7 @@ export function togglePlay() {
     }
   } else {
     S.playing = false;
+    releaseWakeLock();
     stopBinaural();
     stopNoise();
     stopBreathing();
@@ -625,9 +632,14 @@ function finishWimHofRetention() {
     if (S.beep) beep(440, 0.25, S.vol);
     
     // Ticks durante holdFull 15s
-    setTimeout(() => { if (S.phase === 'holdFull' && S.beep) whRetentionTick('soft'); }, 5000);
-    setTimeout(() => { if (S.phase === 'holdFull' && S.beep) whRetentionTick('soft'); }, 10000);
-    setTimeout(() => { if (S.phase === 'holdFull' && S.beep) whReleaseBeep(); }, 15000);
+    // Ticks durante el recovery hold. Se guardan para poder cancelarlos
+    // al pausar (antes quedaban sueltos y sonaban en otra sesión).
+    // El pitido de "suelta" lo da advanceWimHof() al terminar el hold.
+    whTickTimeouts = [5000, 10000]
+      .filter(ms => ms < S.wh.recoveryHold * 1000)
+      .map(ms => setTimeout(() => {
+        if (S.playing && S.phase === 'holdFull' && S.beep) whRetentionTick('soft');
+      }, ms));
 
     breathTO = setTimeout(advanceWimHof, S.wh.recoveryHold * 1000);
   }, 2000);
@@ -642,6 +654,11 @@ function advanceWimHof() {
   
   const orb = document.getElementById('orb');
   if (orb) orb.classList.remove('hold-full', 'hold-empty');
+
+  if (!S.playing) return;
+
+  // Señal de "exhala/suelta" al terminar el recovery hold (un solo pitido)
+  if (S.beep) whReleaseBeep();
 
   // Si completamos todas las rondas
   if (wh.round + 1 >= wh.totalRounds) {
@@ -660,7 +677,6 @@ function advanceWimHof() {
   window.phaseDur = phaseDur;
   
   updateOrbSimple('exhala', 'scale(1.0)', '0 0 12px rgba(68,136,204,.2)', 'var(--cyan)');
-  if (S.beep) beep(360, 0.18, S.vol);
 
   breathTO = setTimeout(() => {
     if (!S.playing) return;
@@ -785,9 +801,11 @@ export function onSliderChange(id, value) {
   switch (id) {
     case 'sBpm':
       S.bpm = parseFloat(value);
+      S.customTiming = true;
       break;
     case 'sRatio':
       S.ratio = parseFloat(value);
+      S.customTiming = true;
       break;
     case 'sHoldFull':
       S.holdFull = parseInt(value);
@@ -797,15 +815,16 @@ export function onSliderChange(id, value) {
       break;
     case 'sCarrier':
       S.carrier = parseInt(value);
-      if (S.playing && S.binaural && !S.tone) {
-        stopBinaural();
+      // En presets solfeggio la portadora real es S.tone: mover este
+      // slider pasa a modo binaural libre con la nueva portadora.
+      if (S.tone) S.tone = null;
+      if (S.playing && S.binaural && !retune(S.carrier, S.beat)) {
         startBinaural(S.carrier, S.beat);
       }
       break;
     case 'sBeat':
       S.beat = parseFloat(value);
-      if (S.playing && S.binaural) {
-        stopBinaural();
+      if (S.playing && S.binaural && !retune(S.tone || S.carrier, S.beat)) {
         if (S.tone) startTone(S.tone, S.beat);
         else        startBinaural(S.carrier, S.beat);
       }
@@ -889,6 +908,20 @@ export function init() {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener('input', (e) => onSliderChange(id, e.target.value));
+    }
+  });
+
+  // Layout móvil/escritorio
+  if (MOBILE_MQ) {
+    if (MOBILE_MQ.addEventListener) MOBILE_MQ.addEventListener('change', onLayoutChange);
+    else if (MOBILE_MQ.addListener) MOBILE_MQ.addListener(onLayoutChange);
+  }
+
+  // Al volver a la app: reanudar audio y re-pedir wake lock
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && S.playing) {
+      resumeAC();
+      requestWakeLock();
     }
   });
 
@@ -1123,9 +1156,27 @@ export function closeBib() {
   if (overlay) overlay.classList.remove('open');
 }
 
-export function openMobSheet(tab) {
+// ─── MOBILE BOTTOM SHEET ────────────────────────────────────────────
+// Antes el sheet se abría vacío: en móvil no había forma de elegir
+// presets ni mover controles. Ahora movemos (no clonamos, para conservar
+// ids y listeners) los paneles de la columna izquierda dentro del sheet.
+const MOBILE_MQ = typeof window !== 'undefined' ? window.matchMedia('(max-width:700px)') : null;
+let mobTab = 'presets';
+
+function movePanelsTo(container) {
+  const presets = document.getElementById('presetsPanel');
+  const ctrl = document.getElementById('ctrlPanel');
+  if (!container || !presets || !ctrl) return;
+  if (presets.parentElement !== container) container.appendChild(presets);
+  if (ctrl.parentElement !== container) container.appendChild(ctrl);
+}
+
+export function openMobSheet(tab = 'presets') {
   const sheet = document.getElementById('mobSheet');
-  if (sheet) sheet.classList.add('open');
+  if (!sheet) return;
+  movePanelsTo(document.getElementById('mobSheetBody'));
+  mobSwitchTab(tab);
+  sheet.classList.add('open');
 }
 
 export function closeMobSheet() {
@@ -1133,8 +1184,56 @@ export function closeMobSheet() {
   if (sheet) sheet.classList.remove('open');
 }
 
+export function toggleMobSheet(tab = 'presets') {
+  const sheet = document.getElementById('mobSheet');
+  if (sheet && sheet.classList.contains('open')) closeMobSheet();
+  else openMobSheet(tab);
+}
+
 export function mobSwitchTab(tab) {
-  console.log('Mobile tab switch:', tab);
+  mobTab = tab === 'controls' ? 'controls' : 'presets';
+  const presets = document.getElementById('presetsPanel');
+  const ctrl = document.getElementById('ctrlPanel');
+  if (presets) presets.style.display = mobTab === 'presets' ? 'block' : 'none';
+  if (ctrl) ctrl.style.display = mobTab === 'controls' ? 'flex' : 'none';
+  document.getElementById('mobTabPresets')?.classList.toggle('active', mobTab === 'presets');
+  document.getElementById('mobTabControls')?.classList.toggle('active', mobTab === 'controls');
+  const body = document.getElementById('mobSheetBody');
+  if (body) body.scrollTop = 0;
+}
+
+// Al pasar a escritorio, devolver los paneles a la columna izquierda
+function onLayoutChange() {
+  if (MOBILE_MQ && !MOBILE_MQ.matches) {
+    closeMobSheet();
+    movePanelsTo(document.getElementById('leftBody'));
+    const programsActive = document.getElementById('tabPrograms')?.classList.contains('active');
+    switchLeftTab(programsActive === false ? 'controls' : 'programs');
+  }
+}
+
+export function isMobileLayout() {
+  return !!(MOBILE_MQ && MOBILE_MQ.matches);
+}
+
+// ─── WAKE LOCK ──────────────────────────────────────────────────────
+// En móvil, si la pantalla se apaga el sistema suspende el audio y los
+// temporizadores → los pitidos se retrasan o desaparecen. Mantener la
+// pantalla encendida mientras la sesión está activa.
+let wakeLock = null;
+
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator && !wakeLock && document.visibilityState === 'visible') {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    }
+  } catch (e) { wakeLock = null; }
+}
+
+function releaseWakeLock() {
+  try { wakeLock && wakeLock.release(); } catch (e) {}
+  wakeLock = null;
 }
 
 export function handleOverlayClick(event) {

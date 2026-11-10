@@ -16,21 +16,37 @@ let noiseGain = null;
 // ─── INIT ────────────────────────────────────────────
 export function initAC() {
   if (AC) return;
+  // iOS 17+: tratar el audio como "reproducción" para que el interruptor
+  // de silencio no apague los pitidos ni el binaural.
+  try {
+    if (navigator.audioSession) navigator.audioSession.type = 'playback';
+  } catch (e) {}
   AC = new (window.AudioContext || window.webkitAudioContext)();
   masterGain = AC.createGain();
   masterGain.gain.value = 0.6;
   masterGain.connect(AC.destination);
+
+  // Móvil: el sistema puede suspender/interrumpir el contexto (llamada,
+  // bloqueo de pantalla, cambio de app). Al volver, lo reanudamos.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') resumeAC();
+  });
 }
 
 export function getAC()         { return AC; }
 export function getMasterGain() { return masterGain; }
 
 export function setVolume(v) {
-  if (masterGain) masterGain.gain.value = v;
+  if (!masterGain) return;
+  // Rampa corta para evitar "clicks" al mover el slider
+  masterGain.gain.setTargetAtTime(v, AC.currentTime, 0.02);
 }
 
 export function resumeAC() {
-  if (AC && AC.state === 'suspended') AC.resume();
+  if (AC && AC.state !== 'running' && AC.state !== 'closed') {
+    return AC.resume().catch(() => {});
+  }
+  return Promise.resolve();
 }
 
 // ─── OSCILADOR BASE ──────────────────────────────────
@@ -86,6 +102,19 @@ export function stopBinaural() {
   if (lGain)  { lGain.disconnect();  lGain  = null; }
   if (rGain)  { rGain.disconnect();  rGain  = null; }
   if (merger) { merger.disconnect(); merger = null; }
+}
+
+// ─── RETUNE EN VIVO ──────────────────────────────────
+// Cambia las frecuencias de los osciladores existentes con una rampa
+// suave, sin destruirlos. Antes cada movimiento del slider paraba y
+// recreaba los osciladores → clicks y cortes audibles.
+// Devuelve false si no hay osciladores activos.
+export function retune(base, beat) {
+  if (!AC || !leftOsc || !rightOsc) return false;
+  const t = AC.currentTime;
+  leftOsc.frequency.setTargetAtTime(base, t, 0.03);
+  rightOsc.frequency.setTargetAtTime(base + beat, t, 0.03);
+  return true;
 }
 
 // ─── RESTART (llamado al cambiar carrier/beat/tone) ──
@@ -145,18 +174,55 @@ export function stopNoise() {
 //   exhale:    360 Hz — grave, señal de soltar
 //   holdFull:  440 Hz — neutro, pulmón lleno (dorado)
 //   holdEmpty: 280 Hz — muy grave, vacío (púrpura)
-export function beep(freq, vol = 0.25, currentVol = 0.6) {
-  if (!AC || !masterGain) return;
-  const o = AC.createOscillator();
-  const g = AC.createGain();
-  g.gain.setValueAtTime(vol * currentVol, AC.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + 0.12);
-  o.frequency.value = freq;
-  o.type = 'sine';
-  o.connect(g);
+//
+// Correcciones:
+//  · El volumen ya se aplica en masterGain; antes se multiplicaba otra vez
+//    por el volumen (vol²) y a volumen medio el pitido quedaba casi inaudible.
+//  · Se programa unos ms en el futuro con ataque corto: programar en
+//    AC.currentTime exacto hace que en móvil a veces se pierda el inicio.
+//  · Si el contexto está suspendido (móvil), se reanuda antes de sonar.
+//  · Un parcial a la octava lo hace distinguible del tono solfeggio
+//    (p. ej. 440 Hz de beep vs 432 Hz de portadora quedaban enmascarados).
+const BEEP_GAIN = 1.6;   // compensa la quita del doble volumen
+const BEEP_DUR  = 0.22;  // s
+
+function playBeep(freq, peak, dur) {
+  const t0 = AC.currentTime + 0.015;
+  const g  = AC.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.linearRampToValueAtTime(peak, t0 + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   g.connect(masterGain);
-  o.start();
-  o.stop(AC.currentTime + 0.14);
+
+  const partials = [[freq, 1.0], [freq * 2, 0.3]];
+  partials.forEach(([f, amp], i) => {
+    const o = AC.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = f;
+    let out = o;
+    if (amp !== 1) {
+      const pg = AC.createGain();
+      pg.gain.value = amp;
+      o.connect(pg);
+      out = pg;
+    }
+    out.connect(g);
+    o.start(t0);
+    o.stop(t0 + dur + 0.02);
+    if (i === 0) o.onended = () => { try { g.disconnect(); } catch (e) {} };
+  });
+}
+
+// `currentVol` se mantiene por compatibilidad pero ya no se usa:
+// masterGain aplica el volumen general.
+export function beep(freq, vol = 0.25, currentVol) { // eslint-disable-line no-unused-vars
+  if (!AC || !masterGain) return;
+  const peak = Math.min(0.9, Math.max(0.0002, vol * BEEP_GAIN));
+  if (AC.state === 'running') {
+    playBeep(freq, peak, BEEP_DUR);
+  } else {
+    resumeAC().then(() => { if (AC.state === 'running') playBeep(freq, peak, BEEP_DUR); });
+  }
 }
 
 
