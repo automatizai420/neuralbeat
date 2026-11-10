@@ -24,7 +24,7 @@ const TXT = {
     unsupported: 'Este navegador no permite notificaciones.',
     error: 'No se pudo activar. Revisa tu conexión e inténtalo de nuevo.',
     offer: (t) => `¿Te recuerdo mañana a las ${t}?`, yes: 'Sí, recuérdame', no: 'Ahora no',
-    notifTitle: 'Coherencia',
+    notifTitle: 'NeuralBeat',
     bodies: ['Tu momento de respirar 🌬', 'Unos minutos de coherencia te esperan.', '¿Respiramos? Tu sesión diaria está lista.'],
   },
   en: {
@@ -37,7 +37,7 @@ const TXT = {
     unsupported: 'This browser doesn’t support notifications.',
     error: 'Couldn’t turn it on. Check your connection and try again.',
     offer: (t) => `Remind you tomorrow at ${t}?`, yes: 'Yes, remind me', no: 'Not now',
-    notifTitle: 'Coherencia',
+    notifTitle: 'NeuralBeat',
     bodies: ['Time to breathe 🌬', 'A few minutes of coherence are waiting for you.', 'Ready to breathe? Your daily session is set.'],
   },
   fr: {
@@ -50,7 +50,7 @@ const TXT = {
     unsupported: 'Ce navigateur ne prend pas en charge les notifications.',
     error: 'Impossible de l’activer. Vérifie ta connexion et réessaie.',
     offer: (t) => `Je te le rappelle demain à ${t} ?`, yes: 'Oui, rappelle-moi', no: 'Pas maintenant',
-    notifTitle: 'Coherencia',
+    notifTitle: 'NeuralBeat',
     bodies: ['C’est le moment de respirer 🌬', 'Quelques minutes de cohérence t’attendent.', 'On respire ? Ta séance du jour est prête.'],
   },
   pt: {
@@ -63,7 +63,7 @@ const TXT = {
     unsupported: 'Este navegador não permite notificações.',
     error: 'Não foi possível ativar. Verifique sua conexão e tente de novo.',
     offer: (t) => `Te lembro amanhã às ${t}?`, yes: 'Sim, me lembre', no: 'Agora não',
-    notifTitle: 'Coherencia',
+    notifTitle: 'NeuralBeat',
     bodies: ['Hora de respirar 🌬', 'Alguns minutos de coerência esperam por você.', 'Vamos respirar? Sua sessão diária está pronta.'],
   },
   zh: {
@@ -76,7 +76,7 @@ const TXT = {
     unsupported: '此浏览器不支持通知。',
     error: '无法开启，请检查网络后重试。',
     offer: (t) => `明天 ${t} 提醒你吗？`, yes: '好，提醒我', no: '以后再说',
-    notifTitle: 'Coherencia',
+    notifTitle: 'NeuralBeat',
     bodies: ['该呼吸一下了 🌬', '几分钟的心脏相干练习在等你。', '一起呼吸吧？今天的练习已准备好。'],
   },
   hi: {
@@ -89,7 +89,7 @@ const TXT = {
     unsupported: 'यह ब्राउज़र सूचनाओं का समर्थन नहीं करता।',
     error: 'चालू नहीं हो सका। अपना कनेक्शन जांचें और फिर से प्रयास करें।',
     offer: (t) => `क्या कल ${t} बजे याद दिलाऊं?`, yes: 'हाँ, याद दिलाएं', no: 'अभी नहीं',
-    notifTitle: 'Coherencia',
+    notifTitle: 'NeuralBeat',
     bodies: ['सांस लेने का समय 🌬', 'कुछ मिनट का सामंजस्य आपका इंतज़ार कर रहा है।', 'चलें सांस लें? आज का सत्र तैयार है।'],
   },
 };
@@ -215,7 +215,7 @@ function render() {
   root.innerHTML = `
     <div class="ob-card rem-card" role="dialog" aria-modal="true" aria-labelledby="remTitle">
       <div class="ob-top">
-        <div class="ob-brand">COHERENCIA</div>
+        <div class="ob-brand">NEURALBEAT</div>
         <button class="ob-close" id="remClose" aria-label="${esc(t.close)}">✕</button>
       </div>
       <h1 class="ob-title" id="remTitle">🔔 ${esc(t.title)}</h1>

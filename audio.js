@@ -66,8 +66,13 @@ export function startBinaural(carrier, beat) {
   merger.connect(masterGain);
   leftOsc  = mkOsc(carrier);
   rightOsc = mkOsc(carrier + beat);
-  lGain = AC.createGain(); lGain.gain.value = 0.35;
-  rGain = AC.createGain(); rGain.gain.value = 0.35;
+  lGain = AC.createGain();
+  rGain = AC.createGain();
+  // Fade-in suave para eliminar click de entrada
+  lGain.gain.setValueAtTime(0, AC.currentTime);
+  lGain.gain.linearRampToValueAtTime(0.35, AC.currentTime + 0.02);
+  rGain.gain.setValueAtTime(0, AC.currentTime);
+  rGain.gain.linearRampToValueAtTime(0.35, AC.currentTime + 0.02);
   leftOsc.connect(lGain);  lGain.connect(merger, 0, 0);
   rightOsc.connect(rGain); rGain.connect(merger, 0, 1);
   leftOsc.start();
@@ -86,8 +91,13 @@ export function startTone(tone, beat) {
   merger.connect(masterGain);
   leftOsc  = mkOsc(tone);
   rightOsc = mkOsc(tone + beat);
-  lGain = AC.createGain(); lGain.gain.value = 0.40;
-  rGain = AC.createGain(); rGain.gain.value = 0.40;
+  lGain = AC.createGain();
+  rGain = AC.createGain();
+  // Fade-in suave para eliminar click de entrada
+  lGain.gain.setValueAtTime(0, AC.currentTime);
+  lGain.gain.linearRampToValueAtTime(0.40, AC.currentTime + 0.02);
+  rGain.gain.setValueAtTime(0, AC.currentTime);
+  rGain.gain.linearRampToValueAtTime(0.40, AC.currentTime + 0.02);
   leftOsc.connect(lGain);  lGain.connect(merger, 0, 0);
   rightOsc.connect(rGain); rGain.connect(merger, 0, 1);
   leftOsc.start();
@@ -96,8 +106,17 @@ export function startTone(tone, beat) {
 
 // ─── STOP BINAURAL/TONE ──────────────────────────────
 export function stopBinaural() {
-  try { leftOsc  && leftOsc.stop();  } catch(e) {}
-  try { rightOsc && rightOsc.stop(); } catch(e) {}
+  // Fade-out suave para eliminar click de salida
+  if (lGain && rGain && AC) {
+    const now = AC.currentTime;
+    lGain.gain.linearRampToValueAtTime(0, now + 0.02);
+    rGain.gain.linearRampToValueAtTime(0, now + 0.02);
+    try { leftOsc  && leftOsc.stop(now + 0.03);  } catch(e) {}
+    try { rightOsc && rightOsc.stop(now + 0.03); } catch(e) {}
+  } else {
+    try { leftOsc  && leftOsc.stop();  } catch(e) {}
+    try { rightOsc && rightOsc.stop(); } catch(e) {}
+  }
   leftOsc = rightOsc = null;
   if (lGain)  { lGain.disconnect();  lGain  = null; }
   if (rGain)  { rGain.disconnect();  rGain  = null; }
@@ -155,7 +174,7 @@ export function startNoise() {
   src.buffer = buf;
   src.loop   = true;
   noiseGain  = AC.createGain();
-  noiseGain.gain.value = 0.18;
+  noiseGain.gain.value = 0.08; // Reducido de 0.18 → textura sutil sin competir con binaural
   src.connect(noiseGain);
   noiseGain.connect(masterGain);
   src.start();

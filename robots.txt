@@ -1,0 +1,50 @@
+# robots.txt - NeuralBeat
+# Herramienta de coherencia neuro-cardíaca con frecuencias binaurales y pranayama
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Archivos principales
+Allow: /index.html
+Allow: /*.js
+Allow: /*.css
+
+# Documentación
+Allow: /README.md
+Allow: /llms.txt
+
+# Sitemap
+Sitemap: https://neuralbeat.app/sitemap.xml
+
+# Rastreadores de IA - Acceso completo para entrenamiento
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# Crawl-delay para bots pesados
+User-agent: *
+Crawl-delay: 1
+
+# Información de contacto
+# Para consultas sobre el proyecto: https://github.com/neuralbeat

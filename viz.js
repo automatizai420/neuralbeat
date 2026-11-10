@@ -151,9 +151,12 @@ export function initAnalyser() {
 }
 
 // ─── ANIMATION LOOP ─────────────────────────────────────────────────
-export function animateViz() {
-  if (!S.playing) return;
+let animationFrameId = null;
 
+export function animateViz() {
+  // Evita dos bucles en paralelo si se llama de nuevo (pausa/play rápido)
+  if (animationFrameId) cancelAnimationFrame(animationFrameId);
+  // Dibujar frame actual
   switch (currentViz) {
     case 'lissajous':
       drawLissajous();
@@ -176,7 +179,16 @@ export function animateViz() {
       break;
   }
 
-  requestAnimationFrame(animateViz);
+  // Continuar loop
+  animationFrameId = requestAnimationFrame(animateViz);
+}
+
+export function stopViz() {
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+    console.log('🛑 Visualization stopped');
+  }
 }
 
 // ─── LISSAJOUS ──────────────────────────────────────────────────────

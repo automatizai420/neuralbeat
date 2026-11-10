@@ -8,7 +8,7 @@ import { initAC, startBinaural, startTone, stopBinaural, startNoise, stopNoise, 
 import { BREATH_PRESETS, WH_DEFAULT, getPhaseDuration, getPhaseSequence } from './breath.js';
 import { I18N } from './i18n.js';
 import { renderBib } from './bib.js';
-import { initViz, setViz, resizeCanvas, initAnalyser, animateViz } from './viz.js';
+import { initViz, setViz, resizeCanvas, initAnalyser, animateViz, stopViz } from './viz.js';
 
 // ─── STATE ──────────────────────────────────────────────────────────
 export const S = {
@@ -51,6 +51,107 @@ export function setLang(lang) {
   applyLang();
   renderBib(lang);
   try { localStorage.setItem('coherencia_lang', lang); } catch (e) {}
+}
+
+// ─── THEME SYSTEM ───────────────────────────────────────────────────
+/**
+ * setTheme(theme) — Cambia el tema visual de la aplicación
+ * Temas disponibles: 'cyber', 'forest', 'warm', 'ocean'
+ */
+export function setTheme(theme) {
+  const validThemes = ['cyber', 'forest', 'warm', 'ocean'];
+  if (!validThemes.includes(theme)) return;
+  
+  // Aplicar data-theme al html root
+  document.documentElement.setAttribute('data-theme', theme);
+  
+  // Actualizar botones activos
+  document.querySelectorAll('.theme-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.theme === theme));
+  
+  // Guardar preferencia
+  localStorage.setItem('coherencia_theme', theme);
+  
+  console.log(`🎨 Theme changed to: ${theme}`);
+}
+
+// Cargar tema guardado al iniciar
+function loadSavedTheme() {
+  const saved = localStorage.getItem('coherencia_theme');
+  if (saved) {
+    setTheme(saved);
+  }
+}
+
+// ─── OPTIONS MENU ───────────────────────────────────────────────────
+/**
+ * toggleOptionsMenu() — Abre/cierra el menú de opciones
+ */
+export function toggleOptionsMenu() {
+  const menu = document.getElementById('optionsMenu');
+  if (menu) {
+    menu.classList.toggle('open');
+  }
+}
+
+// Cerrar menú al hacer click fuera
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('optionsMenu');
+  const btn = document.getElementById('optionsBtn');
+  if (menu && btn && !menu.contains(e.target) && !btn.contains(e.target)) {
+    menu.classList.remove('open');
+  }
+});
+
+// ─── MOBILE MENU (tipo Claude) ──────────────────────────────────────
+/**
+ * openMobMenu() — Abre el menú mobile tipo Claude
+ */
+export function openMobMenu() {
+  const overlay = document.getElementById('mobMenuOverlay');
+  const panel = document.getElementById('mobMenuPanel');
+  if (overlay && panel) {
+    overlay.classList.add('open');
+    panel.style.display = 'block';
+    // Trigger reflow para animación
+    setTimeout(() => panel.classList.add('open'), 10);
+    // Prevenir scroll del body
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+/**
+ * closeMobMenu() — Cierra el menú mobile
+ */
+export function closeMobMenu() {
+  const overlay = document.getElementById('mobMenuOverlay');
+  const panel = document.getElementById('mobMenuPanel');
+  if (overlay && panel) {
+    overlay.classList.remove('open');
+    panel.classList.remove('open');
+    setTimeout(() => panel.style.display = 'none', 300);
+    // Restaurar scroll del body
+    document.body.style.overflow = '';
+  }
+}
+
+/**
+ * updateMobMenuTheme() — Actualiza botones activos de tema en mobile menu
+ */
+export function updateMobMenuTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'cyber';
+  document.querySelectorAll('.mob-menu-theme-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+  });
+}
+
+/**
+ * updateMobMenuLang() — Actualiza botones activos de idioma en mobile menu
+ */
+export function updateMobMenuLang() {
+  document.querySelectorAll('.mob-menu-lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === LANG);
+  });
 }
 
 function applyLang() {
@@ -257,6 +358,9 @@ export function togglePlay() {
     playBtn.setAttribute('aria-label', 'Pausa');
     document.getElementById('statusDot').classList.add('live');
     setText('statusTxt', t('statusActive'));
+    const mobStatusDot = document.getElementById('mobStatusDot');
+    if (mobStatusDot) mobStatusDot.classList.add('live');
+    setText('mobStatusTxt', t('statusActive'));
     document.getElementById('whRow')?.classList.toggle('visible', S.breathPreset === 'wimhof');
   } else {
     S.playing = false;
@@ -269,7 +373,7 @@ export function togglePlay() {
     stopBinaural();
     stopNoise();
     stopBreathing();
-
+    stopViz(); // Detener visualizaciones
     if (sessionIV) {
       clearInterval(sessionIV);
       sessionIV = null;
@@ -281,6 +385,9 @@ export function togglePlay() {
     playBtn.setAttribute('aria-label', 'Iniciar');
     document.getElementById('statusDot').classList.remove('live');
     setText('statusTxt', t('statusInactive'));
+    const mobStatusDot = document.getElementById('mobStatusDot');
+    if (mobStatusDot) mobStatusDot.classList.remove('live');
+    setText('mobStatusTxt', t('statusInactive'));
     document.getElementById('whRow')?.classList.remove('visible');
     updatePhaseInfo();
   }
@@ -584,8 +691,9 @@ export function updatePhaseInfo() {
   let tech = (BREATH_PRESETS[S.breathPreset] || {}).name || '';
   if (S.customTiming && S.breathPreset !== 'wimhof') {
     // Ritmo propio: mostrar los segundos en vez del nombre de la técnica
-    const cyc = 60 / S.bpm, inh = cyc * S.ratio / (S.ratio + 1), r1 = (x) => Math.round(x * 10) / 10;
-    tech = `${r1(inh)}–${r1(cyc - inh)} s`;
+    const r1 = (ph) => Math.round(getPhaseDuration(ph, S) / 100) / 10;
+    const hf = r1('holdFull');
+    tech = hf ? `${r1('inhale')}–${hf}–${r1('exhale')} s` : `${r1('inhale')}–${r1('exhale')} s`;
   }
   phaseTxt.textContent = tech && tech !== name ? `${name} · ${tech}` : name;
   if (phaseCycle) phaseCycle.textContent = S.playing ? `${t('cycleLbl')} ${S.cycles + 1}` : '';
@@ -982,6 +1090,9 @@ export function switchLeftTab(tab) {
 
 // ─── INIT ───────────────────────────────────────────────────────────
 export function init() {
+  // Cargar tema guardado
+  loadSavedTheme();
+  
   // Cargar idioma guardado
   const savedLang = localStorage.getItem('coherencia_lang') || 'es';
   setLang(savedLang);
@@ -1008,7 +1119,15 @@ export function init() {
   sliders.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
-      el.addEventListener('input', (e) => onSliderChange(id, e.target.value));
+      el.addEventListener('input', (e) => {
+        onSliderChange(id, e.target.value);
+        // Actualizar --fill en tiempo real
+        const min = parseFloat(e.target.min);
+        const max = parseFloat(e.target.max);
+        const value = parseFloat(e.target.value);
+        const percent = ((value - min) / (max - min)) * 100;
+        e.target.style.setProperty('--fill', `${percent}%`);
+      });
     }
   });
 

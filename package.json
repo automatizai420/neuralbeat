@@ -2,6 +2,9 @@
   "name": "coherencia-neurocardiaca",
   "version": "9.0.0",
   "description": "Aplicación de coherencia neurocardíaca con frecuencias binaurales y técnicas de respiración",
+  "scripts": {
+    "build": "echo 'Static site - no build needed'"
+  },
   "keywords": [
     "binaural",
     "breathing",

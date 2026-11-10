@@ -189,24 +189,30 @@ export function resolveSession(intent, preset) {
   };
   if (b.pattern === 'wimhof') return out;   // Wim Hof tiene su propio protocolo
 
+  // Resp/min = ciclo completo (retenciones incluidas, ver breath.js).
+  // Con retención se usa el patrón «box» (su secuencia incluye las
+  // retenciones; con customTiming los tiempos salen de los sliders).
   const hasIn = intent.inhale != null, hasOut = intent.exhale != null;
   if (hasIn || hasOut) {
     const inh = hasIn ? intent.inhale : intent.exhale;
     const exh = hasOut ? intent.exhale : intent.inhale;
-    out.bpm = 60 / (inh + exh);
+    const hf = intent.holdFull || 0;
+    out.holdFull = hf;
+    out.holdEmpty = 0;
+    out.pattern = hf > 0 ? 'box' : 'coherencia';
+    out.bpm = 60 / (inh + exh + hf);
     out.ratio = inh / exh;
     out.customTiming = true;
-    // Si la persona solo habla de inhalar/exhalar, sin retenciones
-    out.holdFull = intent.holdFull != null ? intent.holdFull : 0;
-    out.holdEmpty = 0;
-    // Box/4-7-8 tienen tiempos fijos: con tiempos propios se usa el motor libre
-    if (['box', '478', 'bhastrika'].includes(out.pattern)) out.pattern = 'coherencia';
   } else if (intent.bpm != null) {
     out.bpm = intent.bpm;
     out.customTiming = true;
-    if (['box', '478'].includes(out.pattern)) out.pattern = 'coherencia';
+    // Ritmo explícito: sin las retenciones fijas de box / 4-7-8
+    if (['box', '478'].includes(out.pattern)) { out.pattern = 'coherencia'; out.holdFull = 0; out.holdEmpty = 0; }
+  } else if (intent.holdFull != null) {
+    // "retén 5 s" sin tiempos: se agrega la retención al patrón del preset
+    out.holdFull = intent.holdFull;
+    if (!['box', '478'].includes(out.pattern)) { out.pattern = 'box'; out.holdEmpty = 0; out.customTiming = true; }
   }
-  if (intent.holdFull != null && !(hasIn || hasOut)) out.holdFull = intent.holdFull;
 
   out.bpm = Math.round(Math.min(40, Math.max(2, out.bpm)) * 100) / 100;
   out.ratio = Math.round(Math.min(3, Math.max(0.1, out.ratio)) * 100) / 100;

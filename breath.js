@@ -92,31 +92,39 @@ export const WH_DEFAULT = {
 };
 
 // ─── CÁLCULO DE DURACIONES ───────────────────────────
+// Retención efectiva en ms, con la misma regla que se usa para
+// reproducir la fase (fixedDurations → sliders; si no, getHold*).
+function holdMs(phase, S, tech) {
+  if (!tech.sequence.includes(phase)) return 0;
+  if (tech.fixedDurations) return ((phase === 'holdFull' ? S.holdFull : S.holdEmpty) || 0) * 1000;
+  return ((phase === 'holdFull' ? tech.getHoldFull(S) : tech.getHoldEmpty(S)) || 0) * 1000;
+}
+
+// Resp/min describe el ciclo COMPLETO: las retenciones que forman parte
+// de la técnica se descuentan del ciclo y el resto se reparte entre
+// inhalar y exhalar según el ratio.
 export function breathDur(S) {
+  const tech = BREATH_PRESETS[S.breathPreset] || BREATH_PRESETS.coherencia;
   const cycleMs = (60 / S.bpm) * 1000;
+  // Mínimo 2 s para inhalar+exhalar si las retenciones superan el ciclo
+  const breathingTimeMs = Math.max(2000, cycleMs - holdMs('holdFull', S, tech) - holdMs('holdEmpty', S, tech));
   const r = S.ratio;
   return {
-    inhale: cycleMs * (r / (r + 1)),
-    exhale: cycleMs * (1 / (r + 1)),
+    inhale: breathingTimeMs * (r / (r + 1)),
+    exhale: breathingTimeMs * (1 / (r + 1)),
   };
 }
 
 export function getPhaseDuration(phase, S) {
   const tech = BREATH_PRESETS[S.breathPreset] || BREATH_PRESETS.coherencia;
-  // fixedDurations (478, box) son los valores por defecto. Antes tenían
-  // prioridad absoluta y los sliders no hacían nada en estas técnicas.
+  // fixedDurations (478, box) son los valores por defecto:
   //  · Retenciones: siempre se respetan los sliders (applyPreset los
   //    inicializa con los valores fijos).
   //  · Inhala/exhala: fijos hasta que el usuario mueve BPM o ratio.
-  if (tech.fixedDurations) {
-    if (phase === 'holdFull')  return (S.holdFull  || 0) * 1000;
-    if (phase === 'holdEmpty') return (S.holdEmpty || 0) * 1000;
-    if (!S.customTiming && tech.fixedDurations[phase] !== undefined) {
-      return tech.fixedDurations[phase];
-    }
+  if (phase === 'holdFull' || phase === 'holdEmpty') return holdMs(phase, S, tech);
+  if (tech.fixedDurations && !S.customTiming && tech.fixedDurations[phase] !== undefined) {
+    return tech.fixedDurations[phase];
   }
-  if (phase === 'holdFull')  return (tech.getHoldFull(S)  || 0) * 1000;
-  if (phase === 'holdEmpty') return (tech.getHoldEmpty(S) || 0) * 1000;
   const d = breathDur(S);
   return phase === 'inhale' ? d.inhale : d.exhale;
 }

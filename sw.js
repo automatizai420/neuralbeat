@@ -5,7 +5,7 @@
 // los problemas de "versión vieja pegada" y la app abre offline.
 // Sube CACHE_VERSION si cambia la lista de archivos precargados.
 // ════════════════════════════════════════════════════
-const CACHE_VERSION = 'coherencia-v9-4';
+const CACHE_VERSION = 'neuralbeat-v9-5';
 const PREFS_CACHE = 'coherencia-prefs';   // textos del recordatorio (no se borra al actualizar)
 const SHELL = [
   './',
@@ -97,7 +97,7 @@ self.addEventListener('message', (event) => {
 
 self.addEventListener('push', (event) => {
   event.waitUntil((async () => {
-    let d = { title: 'Coherencia', bodies: ['Tu momento de respirar 🌬'], url: './?from=reminder' };
+    let d = { title: 'NeuralBeat', bodies: ['Tu momento de respirar 🌬'], url: './?from=reminder' };
     try {
       const r = await (await caches.open(PREFS_CACHE)).match('./__reminder');
       if (r) d = { ...d, ...(await r.json()) };

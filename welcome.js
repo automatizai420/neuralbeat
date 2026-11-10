@@ -10,6 +10,7 @@
 // ════════════════════════════════════════════════════
 
 import { PRESETS } from './presets.js';
+import { getPhaseDuration } from './breath.js';
 import { parseIntent, resolveSession, GOALS } from './intent.js';
 import { applySession, togglePlay, switchLeftTab, openMobSheet, isMobileLayout, getStats, S } from './app.js';
 
@@ -319,15 +320,13 @@ function summaryChips(c) {
   const name = presetName(s.presetId);
   if (name) chips.push(name);
   if (s.pattern !== 'wimhof') {
-    if (s.customTiming && s.ratio && s.bpm) {
-      const cyc = 60 / s.bpm, inh = cyc * s.ratio / (s.ratio + 1), exh = cyc - inh;
-      const r1 = (x) => Math.round(x * 10) / 10;
-      chips.push(T.breath(r1(inh), r1(exh)));
-    } else {
-      chips.push(T.rpm(Math.round(s.bpm * 10) / 10));
-    }
-    if (s.holdFull) chips.push(T.hold(s.holdFull));
-    if (s.holdEmpty) chips.push(T.holdEmpty(s.holdEmpty));
+    // Mismos cálculos que el motor de respiración
+    const fakeS = { bpm: s.bpm, ratio: s.ratio, holdFull: s.holdFull, holdEmpty: s.holdEmpty, breathPreset: s.pattern, customTiming: s.customTiming };
+    const sec = (ph) => Math.round(getPhaseDuration(ph, fakeS) / 100) / 10;
+    if (s.customTiming) chips.push(T.breath(sec('inhale'), sec('exhale')));
+    else chips.push(T.rpm(Math.round(s.bpm * 10) / 10));
+    if (sec('holdFull')) chips.push(T.hold(sec('holdFull')));
+    if (sec('holdEmpty')) chips.push(T.holdEmpty(sec('holdEmpty')));
   }
   if (p && p.audio.tone) chips.push(T.tone(p.audio.tone));
   else if (s.beat) chips.push(T.beat(s.beat));
@@ -401,7 +400,7 @@ function render() {
   root.innerHTML = `
     <div class="ob-card" role="dialog" aria-modal="true" aria-labelledby="obTitle">
       <div class="ob-top">
-        <div class="ob-brand">COHERENCIA</div>
+        <div class="ob-brand">NEURALBEAT</div>
         <div class="ob-langs">${langBtns}</div>
         <button class="ob-close" id="obClose" aria-label="Cerrar">✕</button>
       </div>
