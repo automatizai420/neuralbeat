@@ -92,7 +92,7 @@ Las fases no se encadenan con `setTimeout`. Un **generador** produce pasos
 Notificación diaria a la hora que elija cada persona, aunque la app esté
 cerrada. Código: `reminders.js` (interfaz), `sw.js` (muestra la
 notificación), `functions/api/push/[[path]].js` (Cloudflare Pages Function)
-y `.github/workflows/reminders.yml` (dispara el envío cada 15 min).
+y un disparador cada 15 min (plantilla en `docs/github-workflow-reminders.yml`).
 
 Mientras no esté configurado, la opción **no aparece** en la app.
 
@@ -106,8 +106,12 @@ Mientras no esté configurado, la opción **no aparece** en la app.
    `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (secreto), `VAPID_SUBJECT` (`mailto:tu-correo`),
    `CRON_SECRET` (secreto).
 5. Volver a desplegar (Deployments → Retry deployment) para que tome las variables.
-6. GitHub → Settings → Secrets and variables → Actions:
-   variable `SITE_URL` (`https://tu-dominio`, sin `/` final) y secreto `CRON_SECRET` (el mismo).
+6. Disparador cada 15 min (una de dos):
+   - **cron-job.org** (gratis): nuevo cron job → URL `https://tu-dominio/api/push/cron`,
+     cada 15 minutos, método POST, cabecera `Authorization: Bearer <CRON_SECRET>`.
+   - **GitHub Actions**: crear `.github/workflows/reminders.yml` con el contenido de
+     `docs/github-workflow-reminders.yml`, y en Settings → Secrets and variables → Actions
+     agregar la variable `SITE_URL` y el secreto `CRON_SECRET`.
 
 Notas: en iPhone/iPad solo funciona con la app instalada (iOS 16.4+). Los
 horarios programados de GitHub Actions pueden retrasarse unos minutos; si se

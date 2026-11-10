@@ -1,3 +1,4 @@
+# COPIAR A: .github/workflows/reminders.yml (GitHub → Add file → Create new file)
 # Envía los recordatorios diarios cada 15 minutos.
 # Configuración (GitHub → Settings → Secrets and variables → Actions):
 #   Variable  SITE_URL     = https://tu-dominio.com   (sin / final)
