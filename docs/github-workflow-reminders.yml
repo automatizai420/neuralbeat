@@ -1,0 +1,34 @@
+# COPIAR A: .github/workflows/reminders.yml (GitHub → Add file → Create new file)
+# Envía los recordatorios diarios cada 15 minutos.
+# Configuración (GitHub → Settings → Secrets and variables → Actions):
+#   Variable  SITE_URL     = https://tu-dominio.com   (sin / final)
+#   Secreto   CRON_SECRET  = el mismo valor que en Cloudflare
+# Mientras falten, el workflow termina sin hacer nada.
+name: Recordatorios diarios
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Enviar recordatorios pendientes
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$SITE_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "Recordatorios sin configurar (falta SITE_URL o CRON_SECRET)."
+            exit 0
+          fi
+          for i in $(seq 1 30); do
+            r=$(curl -fsS -X POST "$SITE_URL/api/push/cron" -H "Authorization: Bearer $CRON_SECRET") || exit 1
+            echo "$r"
+            echo "$r" | grep -q '"done":true' && break
+          done

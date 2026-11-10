@@ -31,6 +31,8 @@ export const S = {
   customTiming:  false,     // true cuando el usuario mueve BPM/ratio
   activePreset:  null,      // NUEVO: referencia al objeto PRESETS[i] activo
   wh:            { ...WH_DEFAULT },
+  customLabel:   null,      // nombre de la sesión creada desde «¿Qué quieres hacer hoy?»
+  sessionTarget: 0,         // duración objetivo en s (0 = libre)
 };
 
 let LANG = 'es';
@@ -70,8 +72,9 @@ export function applyPreset(id) {
   const preset = PRESETS.find(p => p.id === id);
   if (!preset) return;
 
-  // Abrir wizard si es la primera vez (antes de aplicar el preset)
-  openWizard(id, false);  // false = no forzar si ya fue visto
+  // El wizard educativo ya no se abre solo: era lo primero que veía un
+  // visitante nuevo (un muro de texto sobre un preset que no eligió).
+  // Ahora se abre únicamente con el botón «?» de cada tarjeta.
 
   // Marcar activo en DOM
   document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
@@ -79,6 +82,8 @@ export function applyPreset(id) {
   if (card) card.classList.add('active');
 
   S.activePreset = preset;
+  S.customLabel = null;     // un preset elegido a mano no es sesión personalizada
+  S.sessionTarget = 0;
 
   // Audio params
   S.beat    = preset.audio.beat;
@@ -237,11 +242,11 @@ export function togglePlay() {
 
     // Contador de tiempo de sesión
     if (sessionIV) clearInterval(sessionIV);
+    renderSessionTime();
     sessionIV = setInterval(() => {
       S.sessionSec++;
-      const m = Math.floor(S.sessionSec / 60);
-      const s = S.sessionSec % 60;
-      setText('sTime', `${m}:${s.toString().padStart(2, '0')}`);
+      renderSessionTime();
+      if (S.sessionTarget && S.sessionSec >= S.sessionTarget) finishSession();
     }, 1000);
 
     animateViz();
@@ -255,6 +260,11 @@ export function togglePlay() {
     document.getElementById('whRow')?.classList.toggle('visible', S.breathPreset === 'wimhof');
   } else {
     S.playing = false;
+    recordStats(S.sessionSec);
+    if (S.sessionSec >= 60) {
+      // reminders.js escucha esto para ofrecer el recordatorio diario
+      document.dispatchEvent(new CustomEvent('coherencia:session-end', { detail: { sec: S.sessionSec } }));
+    }
     releaseWakeLock();
     stopBinaural();
     stopNoise();
@@ -274,6 +284,71 @@ export function togglePlay() {
     document.getElementById('whRow')?.classList.remove('visible');
     updatePhaseInfo();
   }
+}
+
+const fmtTime = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+
+function renderSessionTime() {
+  setText('sTime', S.sessionTarget ? `${fmtTime(S.sessionSec)} / ${fmtTime(S.sessionTarget)}` : fmtTime(S.sessionSec));
+}
+
+// Fin de una sesión con duración: campana suave, pausa y mensaje
+function finishSession() {
+  const done = S.sessionSec;
+  const ac = getAC();
+  if (ac && S.beep !== false) {
+    const t0 = ac.currentTime + 0.05;
+    [[528, 0], [660, 0.35], [792, 0.7]].forEach(([f, dt]) => beepAt(f, 0.22, t0 + dt));
+  }
+  togglePlay();   // detiene (y registra estadísticas)
+  setText('phaseTxt', `${t('sessionDone')} · ${Math.round(done / 60)} min`);
+  setText('orbLbl', '✓');
+}
+
+// ─── ESTADÍSTICAS LOCALES (sesiones, minutos, racha de días) ────────
+const STATS_KEY = 'coherencia_stats';
+
+export function getStats() {
+  try { return JSON.parse(localStorage.getItem(STATS_KEY)) || { sessions: 0, seconds: 0, streak: 0, lastDay: null }; }
+  catch (e) { return { sessions: 0, seconds: 0, streak: 0, lastDay: null }; }
+}
+
+function recordStats(sec) {
+  if (!sec || sec < 60) return;            // menos de 1 minuto no cuenta
+  const st = getStats();
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+  if (st.lastDay !== today) st.streak = st.lastDay === yesterday ? (st.streak || 0) + 1 : 1;
+  st.lastDay = today;
+  st.sessions = (st.sessions || 0) + 1;
+  st.seconds = (st.seconds || 0) + sec;
+  try { localStorage.setItem(STATS_KEY, JSON.stringify(st)); } catch (e) {}
+}
+
+// ─── SESIÓN PERSONALIZADA ───────────────────────────────────────────
+// Aplica una sesión resuelta por intent.js (o un objetivo rápido):
+// preset base + ajustes de respiración, sonido y duración.
+export function applySession(sess, label) {
+  if (S.playing) togglePlay();
+  applyPreset(sess.presetId);
+  if (sess.pattern) S.breathPreset = sess.pattern;
+  if (sess.bpm != null) S.bpm = sess.bpm;
+  if (sess.ratio != null) S.ratio = sess.ratio;
+  if (sess.holdFull != null) S.holdFull = sess.holdFull;
+  if (sess.holdEmpty != null) S.holdEmpty = sess.holdEmpty;
+  S.customTiming = !!sess.customTiming;
+  if (sess.beat != null) S.beat = sess.beat;
+  ['noise', 'binaural', 'beep'].forEach(k => {
+    if (typeof sess[k] === 'boolean') { S[k] = sess[k]; syncToggle(k); }
+  });
+  S.sessionTarget = sess.minutes ? Math.round(sess.minutes * 60) : 0;
+  S.customLabel = label || null;
+  S.sessionSec = 0;
+  renderSessionTime();
+  syncSliders();
+  updateReadout();
+  updatePhaseInfo();
+  saveSettings();
 }
 
 function setText(id, txt) {
@@ -505,8 +580,13 @@ export function updatePhaseInfo() {
   if (S.playing && S.breathPreset === 'wimhof') return;
 
   const card = document.querySelector(`.preset-card[data-preset-id="${S.activePreset.id}"] .pc-benefit`);
-  const name = card ? card.textContent.trim() : S.activePreset.id;
-  const tech = (BREATH_PRESETS[S.breathPreset] || {}).name || '';
+  const name = S.customLabel || (card ? card.textContent.trim() : S.activePreset.id);
+  let tech = (BREATH_PRESETS[S.breathPreset] || {}).name || '';
+  if (S.customTiming && S.breathPreset !== 'wimhof') {
+    // Ritmo propio: mostrar los segundos en vez del nombre de la técnica
+    const cyc = 60 / S.bpm, inh = cyc * S.ratio / (S.ratio + 1), r1 = (x) => Math.round(x * 10) / 10;
+    tech = `${r1(inh)}–${r1(cyc - inh)} s`;
+  }
   phaseTxt.textContent = tech && tech !== name ? `${name} · ${tech}` : name;
   if (phaseCycle) phaseCycle.textContent = S.playing ? `${t('cycleLbl')} ${S.cycles + 1}` : '';
 }
