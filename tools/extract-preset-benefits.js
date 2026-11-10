@@ -3,7 +3,7 @@
 // Extrae los benefits de presets.js para i18n.js
 // ════════════════════════════════════════════════════
 
-import { PRESETS } from './presets.js';
+import { PRESETS } from '../presets.js';
 
 const langs = ['es', 'en', 'fr', 'pt', 'zh', 'hi'];
 const output = {};

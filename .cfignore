@@ -4,6 +4,8 @@ node_modules/
 *.log
 *.md
 !README.md
+docs/
+tools/
 package-lock.json
 yarn.lock
 .DS_Store

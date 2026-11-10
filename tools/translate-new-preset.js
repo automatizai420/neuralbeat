@@ -4,7 +4,7 @@
 // ════════════════════════════════════════════════════
 
 import https from 'https';
-import { PRESETS } from './presets.js';
+import { PRESETS } from '../presets.js';
 
 const API_KEY = 'AIzaSyBWsrT3JUCcfRubxOQ-N4dAz8FxGhDThF4';
 const TARGET_LANGS = ['fr', 'pt', 'zh', 'hi'];
@@ -106,12 +106,12 @@ async function translatePreset(presetId) {
   console.log('✅ Traducción completada!\n');
 }
 
-// Uso: node translate-new-preset.js <preset-id>
+// Uso: node tools/translate-new-preset.js <preset-id>
 const presetId = process.argv[2];
 
 if (!presetId) {
-  console.error('❌ Uso: node translate-new-preset.js <preset-id>');
-  console.error('   Ejemplo: node translate-new-preset.js delta');
+  console.error('❌ Uso: node tools/translate-new-preset.js <preset-id>');
+  console.error('   Ejemplo: node tools/translate-new-preset.js delta');
   process.exit(1);
 }
 

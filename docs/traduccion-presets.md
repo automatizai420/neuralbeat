@@ -112,7 +112,7 @@ Cada preset debe tener estos campos traducidos:
 
 ```bash
 # Ejecutar el script de traducción automática
-node translate-new-preset.js
+node tools/translate-new-preset.js
 ```
 
 ### Paso 3: El Script Genera las Traducciones
@@ -235,12 +235,12 @@ async function translatePreset(presetId) {
   console.log('✅ Traducción completada!\n');
 }
 
-// Uso: node translate-new-preset.js <preset-id>
+// Uso: node tools/translate-new-preset.js <preset-id>
 const presetId = process.argv[2];
 
 if (!presetId) {
-  console.error('❌ Uso: node translate-new-preset.js <preset-id>');
-  console.error('   Ejemplo: node translate-new-preset.js delta');
+  console.error('❌ Uso: node tools/translate-new-preset.js <preset-id>');
+  console.error('   Ejemplo: node tools/translate-new-preset.js delta');
   process.exit(1);
 }
 
@@ -276,7 +276,7 @@ translatePreset(presetId).catch(console.error);
 ### 2. Ejecutar Script
 
 ```bash
-node translate-new-preset.js mi-nuevo-preset
+node tools/translate-new-preset.js mi-nuevo-preset
 ```
 
 ### 3. Copiar Resultado
@@ -379,7 +379,7 @@ Este script:
 ```
 1. Crear preset en presets.js (solo ES y EN)
    ↓
-2. Ejecutar: node translate-new-preset.js <id>
+2. Ejecutar: node tools/translate-new-preset.js <id>
    ↓
 3. Copiar traducciones generadas a presets.js
    ↓

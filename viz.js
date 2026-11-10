@@ -50,24 +50,29 @@ export function resizeCanvas() {
   const container = document.getElementById('vizContainer');
   if (!container) return;
 
-  const w = container.clientWidth;
   const h = container.clientHeight;
+  const w = container.clientWidth;
+  const gap = parseFloat(getComputedStyle(container).columnGap) || 4;
 
+  // Antes el canvas derecho medía 58% + el gap → se salía del contenedor
+  // (visible en móvil). Ahora se reparte el ancho descontando el gap.
   [wcLissajous, wcSpectrum, wcOscillo, wcSpectrogram, wcVector, wcCymatics].forEach(canvas => {
     if (!canvas) return;
     const isLeft = canvas.classList.contains('viz-left');
     const isRight = canvas.classList.contains('viz-right');
-    
-    if (isLeft) {
-      canvas.width = w * 0.42;
-      canvas.height = h;
-    } else if (isRight) {
-      canvas.width = w * 0.58;
-      canvas.height = h;
-    } else {
-      canvas.width = w;
-      canvas.height = h;
-    }
+    let cw = w;
+    if (isLeft)  cw = Math.floor((w - gap) * 0.42);
+    if (isRight) cw = Math.floor((w - gap) * 0.58);
+    if (canvas.width !== cw) canvas.width = cw;
+    if (canvas.height !== h) canvas.height = h;
+  });
+}
+
+// Re-dimensionar también cuando cambia el layout (no solo en resize)
+if (typeof window !== 'undefined' && 'ResizeObserver' in window) {
+  window.addEventListener('load', () => {
+    const container = document.getElementById('vizContainer');
+    if (container) new ResizeObserver(() => resizeCanvas()).observe(container);
   });
 }
 
