@@ -49,6 +49,7 @@ neuralbeat/
 ├── presets.js            # Presets + generador de wizards educativos
 ├── viz.js                # 6 visualizaciones en canvas
 ├── i18n.js               # Traducciones (es, en, fr, pt, zh, hi)
+├── bib.js                # Sección «Ciencia» en los 6 idiomas
 ├── sw.js                 # Service worker (uso sin conexión)
 ├── manifest.webmanifest  # PWA: instalar en pantalla de inicio
 ├── icons/                # Íconos de la app

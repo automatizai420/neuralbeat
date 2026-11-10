@@ -769,6 +769,11 @@ input[type=range]::-moz-range-track{background:transparent;}
   font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:0;
 }
 
+/* Hindi y chino: el letter-spacing separa los caracteres combinados
+   (devanagari) y deja huecos raros en chino → desactivarlo */
+html:lang(hi) *,html:lang(zh) *{letter-spacing:0 !important;}
+html:lang(hi) .bib-footer-note,html:lang(hi) .wiz-step-body,html:lang(hi) .bib-ref-title{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;}
+
 /* Accesibilidad: foco visible con teclado, menos movimiento */
 :focus-visible{outline:2px solid var(--cyan);outline-offset:2px;}
 .preset-card:focus-visible,.tog-row:focus-visible{outline-offset:-2px;}
@@ -1258,100 +1263,21 @@ input[type=range]::-moz-range-track{background:transparent;}
 
 <!-- ══ BIBLIOGRAPHY OVERLAY ════════════════════════ -->
 <div class="bib-overlay" id="bibOverlay" onclick="window.handleBibOverlayClick(event)">
-  <div class="bib-panel">
+  <div class="bib-panel" role="dialog" aria-modal="true" aria-labelledby="bibTitle">
     <div class="bib-header">
       <div class="bib-header-left">
         <div class="bib-dot" style="background:var(--gold)"></div>
-        <div class="bib-title" data-i18n="bibTitle">Base Científica</div>
-        <div class="bib-sub" data-i18n="bibSub">Literatura revisada · 2025–2026</div>
+        <div class="bib-title" id="bibTitle">Base Científica</div>
+        <div class="bib-sub" id="bibSub">Literatura revisada · 2025–2026</div>
       </div>
-      <button class="wiz-close" onclick="window.closeBib()">✕</button>
+      <button class="wiz-close" onclick="window.closeBib()" aria-label="Cerrar">✕</button>
     </div>
-    <div class="bib-tabs">
-      <div class="bib-tab active" data-btab="binaural" onclick="window.switchBibTab(this)" data-i18n="bibTabBinaural">Frecuencias Binaurales</div>
-      <div class="bib-tab" data-btab="pranayama"       onclick="window.switchBibTab(this)" data-i18n="bibTabPranayama">Pranayama &amp; EEG</div>
-      <div class="bib-tab" data-btab="vago"            onclick="window.switchBibTab(this)" data-i18n="bibTabVago">Nervio Vago &amp; HRV</div>
-      <div class="bib-tab" data-btab="lcr"             onclick="window.switchBibTab(this)" data-i18n="bibTabLcr">LCR &amp; Respiración</div>
-    </div>
-    <div class="bib-body">
-      <div class="bib-section active" id="bib-binaural">
-        <div class="bib-intro">Las frecuencias binaurales presentan dos tonos ligeramente distintos — el cerebro percibe la diferencia como un tercer tono de baja frecuencia. La revisión sistemática más reciente señala que los efectos más robustos se observan en ansiedad clínica y coherencia cardíaca, mientras que el arrastre EEG puro sigue siendo inconsistente.</div>
-        <div class="bib-finding">
-          <div class="bib-finding-badge" style="background:rgba(78,203,138,.12);color:var(--green);border-color:rgba(78,203,138,.3)">Meta-análisis · 2025 · 15 RCTs · +1000 pacientes</div>
-          <div class="bib-finding-text">Audio binaural perioperatorio redujo significativamente ansiedad, dolor postoperatorio, presión arterial sistólica y frecuencia cardíaca comparado con controles.</div>
-        </div>
-        <div class="bib-finding">
-          <div class="bib-finding-badge" style="background:rgba(80,180,200,.12);color:var(--cyan);border-color:rgba(80,180,200,.3)">Revisión sistemática · 2023 · PLoS ONE</div>
-          <div class="bib-finding-text">De 14 estudios EEG: 5 confirman arrastre, 8 muestran resultados contradictorios. El obstáculo es la heterogeneidad metodológica, no la ausencia de mecanismo.</div>
-        </div>
-        <div class="bib-finding">
-          <div class="bib-finding-badge" style="background:rgba(255,107,107,.12);color:#ff6b6b;border-color:rgba(255,107,107,.3)">MIT Tsai Lab · 40 Hz · 2016–2023</div>
-          <div class="bib-finding-text">Estimulación multisensorial a 40 Hz reduce placas amiloides en modelos de Alzheimer hasta 40–50%, posiblemente vía sincronización de células gliales y sistema glinfático.</div>
-        </div>
-        <div class="bib-refs">
-          <div class="bib-ref-title">Referencias</div>
-          <div class="bib-ref">[1] Ingendoh et al. (2023). Binaural beats to entrain the brain? <em>PLoS ONE</em>. DOI: 10.1371/journal.pone.0286023</div>
-          <div class="bib-ref">[2] Cooper &amp; Hawk (2025). Parametric investigation of binaural beats. <em>Scientific Reports</em>, 15, 4308.</div>
-          <div class="bib-ref">[3] Iaccarino et al. (2016). Gamma frequency entrainment attenuates amyloid load. <em>Nature</em>, 540, 230–235.</div>
-        </div>
-      </div>
-      <div class="bib-section" id="bib-pranayama">
-        <div class="bib-intro">El pranayama modula el sistema nervioso autónomo, el EEG y el flujo de LCR a través de múltiples mecanismos: estimulación vagal vía barorreceptores, señalización olfativa hacia corteza prefrontal, y variación de presión intracraneal por ciclos respiratorios.</div>
-        <div class="bib-finding">
-          <div class="bib-finding-badge" style="background:rgba(78,203,138,.12);color:var(--green);border-color:rgba(78,203,138,.3)">Harvard/NIMHANS · Asian J Psychiatry · 2026</div>
-          <div class="bib-finding-text">Revisión sistemática confirma que técnicas específicas de pranayama producen efectos equivalentes a neuromodulación transcraneal no invasiva — modulando función autonómica, rendimiento cognitivo y dinámica cerebral.</div>
-        </div>
-        <div class="bib-finding">
-          <div class="bib-finding-badge" style="background:rgba(155,125,232,.12);color:var(--purple);border-color:rgba(155,125,232,.3)">Wim Hof Method · Fisiología</div>
-          <div class="bib-finding-text">La hiperventilación controlada (30 respiraciones profundas) reduce CO₂ (hipocapnia), alcaliniza el pH sanguíneo temporalmente y activa el eje simpático-adrenal. La retención con pulmones vacíos genera un estado de hipoxia-hipercapnia que activa reflejos de supervivencia y libera epinefrina.</div>
-        </div>
-        <div class="bib-finding">
-          <div class="bib-finding-badge" style="background:rgba(212,168,75,.12);color:var(--gold);border-color:rgba(212,168,75,.3)">PMC · 2025 — Respiración lenta y EEG</div>
-          <div class="bib-finding-text">Incluso 2 minutos de respiración lenta aumentan HRV de forma medible. Respiración lenta vs rápida muestra aumentos simultáneos en delta, theta, alpha y beta del EEG — estado integrador dual: calmado pero alerta.</div>
-        </div>
-        <div class="bib-refs">
-          <div class="bib-ref-title">Referencias</div>
-          <div class="bib-ref">[4] Bhargav et al. (2026). Pranayama, an ancient self-directed approach to neuromodulation. <em>Asian J Psychiatry</em>, 115, 104788.</div>
-          <div class="bib-ref">[5] Zaccaro et al. (2022). Neural Correlates of Non-ordinary States in Pranayama Practitioners. <em>Front. Systems Neuroscience</em>.</div>
-          <div class="bib-ref">[6] Luo et al. (2025). Slow breathing EEG analysis. <em>PMC12341363</em>.</div>
-        </div>
-      </div>
-      <div class="bib-section" id="bib-vago">
-        <div class="bib-intro">El nervio vago conecta corazón y cerebro bidireccionalmenete, con más del 80% de fibras aferentes (cuerpo→cerebro). La coherencia cardíaca a 0.1 Hz (6 resp/min) maximiza la señal vagal hacia corteza prefrontal y amígdala — el mecanismo mejor documentado de la aplicación.</div>
-        <div class="bib-finding">
-          <div class="bib-finding-badge" style="background:rgba(78,203,138,.12);color:var(--green);border-color:rgba(78,203,138,.3)">Neuroscience (Elsevier) · Enero 2025</div>
-          <div class="bib-finding-text">La HRV mediada vagalmente es índice de control cognitivo top-down. Mayor vmHRV se asocia con mejor rendimiento en funciones ejecutivas, memoria, atención y lenguaje — convirtiendo la coherencia cardíaca en herramienta de mejora cognitiva.</div>
-        </div>
-        <div class="bib-finding">
-          <div class="bib-finding-badge" style="background:rgba(80,180,200,.12);color:var(--cyan);border-color:rgba(80,180,200,.3)">Spandidos Publications · Jul 2025</div>
-          <div class="bib-finding-text">La RSA (arritmia sinusal respiratoria) a ~0.1 Hz es el estado de coherencia fisiológica que maximiza eficiencia del intercambio gaseoso y resiliencia cardiovascular. Fundamento del preset Alpha 6 rpm.</div>
-        </div>
-        <div class="bib-refs">
-          <div class="bib-ref-title">Referencias</div>
-          <div class="bib-ref">[7] Ferrer-Uris et al. (2025). Brain-heart connection: HRV and cognitive functioning. <em>Neuroscience</em>, 565, 369–376.</div>
-          <div class="bib-ref">[8] McCraty &amp; Shaffer (2015). Heart Rate Variability: New Perspectives. <em>Global Advances in Health and Medicine</em>, 4(1). [HeartMath]</div>
-        </div>
-      </div>
-      <div class="bib-section" id="bib-lcr">
-        <div class="bib-intro">El LCR (líquido cefalorraquídeo) fluye de forma pulsátil sincronizada con la respiración. La respiración consciente es un mecanismo real de modulación del flujo cerebroespinal — no solo metafórico. El sistema glinfático de limpieza cerebral opera principalmente en delta (sueño profundo).</div>
-        <div class="bib-finding">
-          <div class="bib-finding-badge" style="background:rgba(78,203,138,.12);color:var(--green);border-color:rgba(78,203,138,.3)">Oregon Health &amp; Science University · Scientific Reports · 2022</div>
-          <div class="bib-finding-text">MRI en tiempo real demostró que la respiración yóguica modifica de forma inmediata el flujo pulsátil del LCR. Las técnicas de pranayama tienen efecto fisiológico real sobre el SNC.</div>
-        </div>
-        <div class="bib-finding">
-          <div class="bib-finding-badge" style="background:rgba(155,125,232,.12);color:var(--purple);border-color:rgba(155,125,232,.3)">Nedergaard Lab · Sistema Glinfático · 2013–2024</div>
-          <div class="bib-finding-text">El sistema glinfático opera principalmente en sueño delta. Transporta LCR eliminando beta-amiloide y tau. La estimulación 40 Hz puede activarlo parcialmente en vigilia.</div>
-        </div>
-        <div class="bib-refs">
-          <div class="bib-ref-title">Referencias</div>
-          <div class="bib-ref">[9] Yildiz et al. (2022). Yogic breathing impact on pulsatile CSF dynamics. <em>Scientific Reports</em>, 12, 10666.</div>
-          <div class="bib-ref">[10] Iliff et al. (2012). A paravascular pathway facilitates CSF flow. <em>Science Translational Medicine</em>, 4(147).</div>
-        </div>
-      </div>
-    </div>
+    <!-- Pestañas y contenido se generan desde bib.js según el idioma -->
+    <div class="bib-tabs" id="bibTabs" role="tablist"></div>
+    <div class="bib-body" id="bibBody"></div>
     <div class="bib-footer">
-      <div class="bib-footer-note" data-i18n="bibDisclaimer">Herramienta educativa y de bienestar. No constituye diagnóstico médico. Consulta a un profesional ante cualquier condición de salud.</div>
-      <button class="wiz-nav-btn primary" onclick="window.closeBib()" data-i18n="bibClose">Cerrar</button>
+      <div class="bib-footer-note" id="bibDisclaimer">Herramienta educativa y de bienestar. No constituye diagnóstico médico. Consulta a un profesional ante cualquier condición de salud.</div>
+      <button class="wiz-nav-btn primary" id="bibCloseBtn" onclick="window.closeBib()">Cerrar</button>
     </div>
   </div>
 </div>

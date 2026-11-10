@@ -7,6 +7,7 @@ import { PRESETS } from './presets.js';
 import { initAC, startBinaural, startTone, stopBinaural, startNoise, stopNoise, beepAt, cancelNodes, setVolume, getAC, resumeAC, retune, whRecoveryToneAt, whRetentionTickAt, whReleaseBeepAt } from './audio.js';
 import { BREATH_PRESETS, WH_DEFAULT, getPhaseDuration, getPhaseSequence } from './breath.js';
 import { I18N } from './i18n.js';
+import { renderBib } from './bib.js';
 import { initViz, setViz, resizeCanvas, initAnalyser, animateViz } from './viz.js';
 
 // ─── STATE ──────────────────────────────────────────────────────────
@@ -46,7 +47,8 @@ export function setLang(lang) {
   document.querySelectorAll('.lang-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.lang === lang));
   applyLang();
-  localStorage.setItem('coherencia_lang', lang);
+  renderBib(lang);
+  try { localStorage.setItem('coherencia_lang', lang); } catch (e) {}
 }
 
 function applyLang() {
@@ -1188,6 +1190,7 @@ function getCurrentLang() {
 // ════════════════════════════════════════════════════════════════════════════
 
 export function openBib() {
+  if (!document.querySelector('#bibBody .bib-section')) renderBib(LANG);
   const overlay = document.getElementById('bibOverlay');
   if (overlay) overlay.classList.add('open');
 }
