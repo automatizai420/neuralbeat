@@ -1,4 +1,4 @@
-# Coherencia · Neuro·Cardíaca v8
+# Coherencia · Neuro·Cardíaca
 
 **Aplicación web de coherencia neurocardíaca** que combina frecuencias binaurales, tonos de sanación y técnicas de respiración científicamente validadas en una arquitectura modular moderna.
 
@@ -38,59 +38,56 @@
 
 ---
 
-## 🏗️ Arquitectura v8 (Modular)
-
-### Estructura de Archivos
+## 🏗️ Arquitectura
 
 ```
-coherencia-v8/
-├── index.html          # Shell HTML + CSS + imports ES6
-├── app.js              # Estado global + UI + Wim Hof State Machine
-├── audio.js            # Motor binaural + tonos + ruido + beeps
-├── breath.js           # Motores de respiración + configuraciones
-├── presets.js          # 16 presets predefinidos
-├── viz.js              # 6 visualizaciones de canvas
-├── i18n.js             # Traducciones en 4 idiomas
-└── coherencia8.html    # Versión monolítica (referencia, NO EDITAR)
+neuralbeat/
+├── index.html            # Shell HTML + CSS + arranque (módulos ES)
+├── app.js                # Estado, UI, motor de respiración, Wim Hof, ajustes
+├── audio.js              # Binaural, tonos, ruido rosa y pitidos programados
+├── breath.js             # Técnicas de respiración y duraciones de fase
+├── presets.js            # Presets + generador de wizards educativos
+├── viz.js                # 6 visualizaciones en canvas
+├── i18n.js               # Traducciones (es, en, fr, pt, zh, hi)
+├── bib.js                # Sección «Ciencia» en los 6 idiomas
+├── sw.js                 # Service worker (uso sin conexión)
+├── manifest.webmanifest  # PWA: instalar en pantalla de inicio
+├── icons/                # Íconos de la app
+├── _headers              # Cabeceras para Cloudflare Pages
+├── docs/                 # Notas: presets de salud, traducción de presets
+└── tools/                # Scripts de mantenimiento (node tools/…)
 ```
 
-### Cambios Principales v7 → v8
+### Motor de respiración (reloj del audio)
 
-#### 1. **Arquitectura Modular ES6**
-- **Antes**: Archivo monolítico de 3200+ líneas
-- **Ahora**: 7 módulos separados por responsabilidad
-- Mejor mantenibilidad y escalabilidad
+Las fases no se encadenan con `setTimeout`. Un **generador** produce pasos
+`{phase, dur, cues, enter}` y un planificador los coloca sobre
+`AudioContext.currentTime` con 2.5 s de anticipación:
 
-#### 2. **Sistema de Presets Mejorado**
-- **Antes**: Presets definidos como `data-*` attributes en HTML
-- **Ahora**: Presets como objetos JavaScript en `presets.js`
-- Configuración centralizada y tipada
+- Los **pitidos** (`cues`) se programan en el motor de audio para el instante
+  exacto: no se atrasan aunque la pestaña esté en segundo plano o el hilo
+  principal esté ocupado.
+- La **parte visual** (`enter`) se aplica cuando el reloj del audio alcanza el
+  inicio del paso (bucle `requestAnimationFrame` + intervalo de respaldo).
+- Al mover BPM, ratio o retenciones en vivo, las fases futuras se
+  **reprograman** (`replan`); al pausar, los pitidos pendientes se cancelan.
+- Wim Hof usa el mismo planificador con su propio generador; el botón
+  «Inhalar ahora» termina la retención abierta en el instante.
 
-#### 3. **Audio Healing Corregido**
-- **Antes**: Los presets healing usaban `data-beat="528"` → enviaba 528 Hz al beat
-- **Ahora**: `audio.tone` es el carrier real para presets healing
-  - El tono principal que escucha el usuario ES el solfeggio
-  - `startTone(tone, beat)` → L=tone Hz, R=tone+beat Hz
+### Móvil y PWA
 
-#### 4. **Wim Hof Method Corregido**
-- **Antes**: Flujo incorrecto con holdFull en lugar de holdEmpty
-- **Ahora**: Flujo real del método
-  - 30 respiraciones rápidas → exhala → **HOLDEMPIY libre** (usuario controla)
-  - → inhala profundo → **HOLDFULL 15s fijos** (recovery)
-  - → transición suave entre rondas (exhale 3s + cuenta regresiva 5s)
-  - → repite 4 rondas
+- En pantallas ≤ 700 px los paneles de Programas y Controles viven en un
+  *bottom sheet* (botón ☰).
+- **Wake Lock** mantiene la pantalla encendida durante la sesión.
+- Se puede **instalar** desde el navegador y funciona **sin conexión**
+  (estrategia red-primero con respaldo en caché). Si cambias la lista de
+  archivos precargados, sube `CACHE_VERSION` en `sw.js`.
 
-#### 5. **Sistema de Ticks de Orientación**
-- Ticks auditivos cada 10s durante retenciones
-- Tonos ascendentes en transiciones entre rondas
-- Sweep de frecuencia en recovery breath
-- Pitidos de exhale en todas las respiraciones
+### Ajustes guardados
 
-#### 6. **Visualización Cymatics**
-- Simulación de patrones de Chladni en agua
-- 800 partículas que forman patrones geométricos
-- Patrones dinámicos basados en frecuencia activa
-- Modulación por beat binaural
+Se guardan en `localStorage` (`coherencia_settings`): volumen, pitido,
+binaural, ruido rosa, último preset y visualización. El idioma usa
+`coherencia_lang` y los wizards vistos `coherencia_wizards_seen`.
 
 ---
 
@@ -194,12 +191,7 @@ wrangler pages deploy . --project-name=coherencia
 ## 🧪 Verificación de Funcionamiento
 
 ### Consola del Navegador (F12)
-Al cargar la aplicación, deberías ver:
-```
-🎵 Coherencia v8 modular loaded
-```
-
-Sin errores rojos.
+Al cargar la aplicación no debe haber errores rojos.
 
 ### Checklist Funcional
 - ✅ Cambio de idioma funciona (ES/EN/FR/PT)
@@ -380,14 +372,19 @@ export const BREATH_PRESETS = {
 
 ## 🗺️ Roadmap Futuro
 
-### v8.1 (Próximo)
+### Hecho en v9
+- [x] Pitidos programados en el reloj del audio
+- [x] Menú móvil con presets y controles, textos legibles
+- [x] PWA instalable y uso sin conexión
+- [x] Ajustes guardados en el navegador
+
+### Próximo
 - [ ] Guardado de sesiones en LocalStorage
 - [ ] Historial de prácticas
 - [ ] Estadísticas acumuladas
 - [ ] Export de patrones cimáticos como imagen
 
 ### v8.2
-- [ ] PWA (Progressive Web App) para uso offline
 - [ ] Notificaciones de recordatorio
 - [ ] Integración con sensores HRV (Bluetooth)
 - [ ] Biofeedback en tiempo real
@@ -447,7 +444,7 @@ Las contribuciones son bienvenidas:
 
 ## 📈 Estadísticas del Proyecto
 
-- **Versión Actual**: v8.0
+- **Versión Actual**: v9.0
 - **Líneas de Código**: ~3,500 (modular)
 - **Presets**: 16
 - **Técnicas de Respiración**: 8
@@ -489,7 +486,7 @@ Simulación física de patrones de Chladni:
 ---
 
 **Última actualización**: Mayo 2026  
-**Versión**: v8.0 Modular  
+**Versión**: v9.0  
 **Estado**: ✅ Producción - Completamente funcional
 
 ---

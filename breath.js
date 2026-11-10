@@ -103,9 +103,17 @@ export function breathDur(S) {
 
 export function getPhaseDuration(phase, S) {
   const tech = BREATH_PRESETS[S.breathPreset] || BREATH_PRESETS.coherencia;
-  // fixedDurations tiene prioridad absoluta (478, box)
-  if (tech.fixedDurations && tech.fixedDurations[phase] !== undefined) {
-    return tech.fixedDurations[phase];
+  // fixedDurations (478, box) son los valores por defecto. Antes tenían
+  // prioridad absoluta y los sliders no hacían nada en estas técnicas.
+  //  · Retenciones: siempre se respetan los sliders (applyPreset los
+  //    inicializa con los valores fijos).
+  //  · Inhala/exhala: fijos hasta que el usuario mueve BPM o ratio.
+  if (tech.fixedDurations) {
+    if (phase === 'holdFull')  return (S.holdFull  || 0) * 1000;
+    if (phase === 'holdEmpty') return (S.holdEmpty || 0) * 1000;
+    if (!S.customTiming && tech.fixedDurations[phase] !== undefined) {
+      return tech.fixedDurations[phase];
+    }
   }
   if (phase === 'holdFull')  return (tech.getHoldFull(S)  || 0) * 1000;
   if (phase === 'holdEmpty') return (tech.getHoldEmpty(S) || 0) * 1000;

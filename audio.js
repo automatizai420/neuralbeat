@@ -16,21 +16,37 @@ let noiseGain = null;
 // ─── INIT ────────────────────────────────────────────
 export function initAC() {
   if (AC) return;
+  // iOS 17+: tratar el audio como "reproducción" para que el interruptor
+  // de silencio no apague los pitidos ni el binaural.
+  try {
+    if (navigator.audioSession) navigator.audioSession.type = 'playback';
+  } catch (e) {}
   AC = new (window.AudioContext || window.webkitAudioContext)();
   masterGain = AC.createGain();
   masterGain.gain.value = 0.6;
   masterGain.connect(AC.destination);
+
+  // Móvil: el sistema puede suspender/interrumpir el contexto (llamada,
+  // bloqueo de pantalla, cambio de app). Al volver, lo reanudamos.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') resumeAC();
+  });
 }
 
 export function getAC()         { return AC; }
 export function getMasterGain() { return masterGain; }
 
 export function setVolume(v) {
-  if (masterGain) masterGain.gain.value = v;
+  if (!masterGain) return;
+  // Rampa corta para evitar "clicks" al mover el slider
+  masterGain.gain.setTargetAtTime(v, AC.currentTime, 0.02);
 }
 
 export function resumeAC() {
-  if (AC && AC.state === 'suspended') AC.resume();
+  if (AC && AC.state !== 'running' && AC.state !== 'closed') {
+    return AC.resume().catch(() => {});
+  }
+  return Promise.resolve();
 }
 
 // ─── OSCILADOR BASE ──────────────────────────────────
@@ -88,6 +104,19 @@ export function stopBinaural() {
   if (merger) { merger.disconnect(); merger = null; }
 }
 
+// ─── RETUNE EN VIVO ──────────────────────────────────
+// Cambia las frecuencias de los osciladores existentes con una rampa
+// suave, sin destruirlos. Antes cada movimiento del slider paraba y
+// recreaba los osciladores → clicks y cortes audibles.
+// Devuelve false si no hay osciladores activos.
+export function retune(base, beat) {
+  if (!AC || !leftOsc || !rightOsc) return false;
+  const t = AC.currentTime;
+  leftOsc.frequency.setTargetAtTime(base, t, 0.03);
+  rightOsc.frequency.setTargetAtTime(base + beat, t, 0.03);
+  return true;
+}
+
 // ─── RESTART (llamado al cambiar carrier/beat/tone) ──
 // Decide automáticamente si usar startTone o startBinaural
 // según si el preset activo tiene audio.tone definido.
@@ -139,93 +168,100 @@ export function stopNoise() {
   if (noiseGain) { noiseGain.disconnect(); noiseGain = null; }
 }
 
-// ─── BEEP DE GUÍA RESPIRATORIA ───────────────────────
-// Cada fase tiene un tono diferente:
+// ─── SEÑALES PROGRAMADAS EN EL RELOJ DEL AUDIO ───────
+// Todas las señales aceptan `when` (segundos en AC.currentTime) y devuelven
+// los nodos creados, para poder cancelarlas con cancelNodes() si la sesión
+// se pausa o cambia el plan. El motor de respiración (app.js) las programa
+// por adelantado: suenan a tiempo aunque el hilo principal esté ocupado o la
+// pestaña esté en segundo plano (los timers del navegador se ralentizan,
+// el reloj del audio no).
+//
+// Tonos por fase:
 //   inhale:    520 Hz — brillante, señal de subida
 //   exhale:    360 Hz — grave, señal de soltar
 //   holdFull:  440 Hz — neutro, pulmón lleno (dorado)
 //   holdEmpty: 280 Hz — muy grave, vacío (púrpura)
-export function beep(freq, vol = 0.25, currentVol = 0.6) {
-  if (!AC || !masterGain) return;
-  const o = AC.createOscillator();
-  const g = AC.createGain();
-  g.gain.setValueAtTime(vol * currentVol, AC.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + 0.12);
-  o.frequency.value = freq;
-  o.type = 'sine';
-  o.connect(g);
-  g.connect(masterGain);
-  o.start();
-  o.stop(AC.currentTime + 0.14);
+//
+// El volumen general lo aplica masterGain (no se multiplica aquí otra vez).
+// Un parcial a la octava evita que el pitido quede enmascarado por los tonos
+// solfeggio (440 Hz de beep vs 432 Hz de portadora).
+const BEEP_GAIN = 1.6;
+const BEEP_DUR  = 0.22;
+
+export function now() { return AC ? AC.currentTime : 0; }
+
+export function cancelNodes(nodes) {
+  if (!nodes) return;
+  nodes.forEach(n => { try { n.stop(); } catch (e) {} });
 }
 
+// Envolvente + osciladores. partials: [[freqStart, amp, freqEnd?], ...]
+function voice(when, dur, peak, partials, attack = 0.012, curve = 'exp') {
+  if (!AC || !masterGain) return [];
+  const t0 = Math.max(when, AC.currentTime + 0.005);
+  const g = AC.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.linearRampToValueAtTime(peak, t0 + attack);
+  if (curve === 'exp') g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  else { g.gain.setValueAtTime(peak, t0 + dur * 0.6); g.gain.linearRampToValueAtTime(0.0001, t0 + dur); }
+  g.connect(masterGain);
+  const nodes = [];
+  partials.forEach(([f0, amp, f1]) => {
+    const o = AC.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f0, t0);
+    if (f1) o.frequency.linearRampToValueAtTime(f1, t0 + dur * 0.9);
+    let out = o;
+    if (amp !== 1) { const pg = AC.createGain(); pg.gain.value = amp; o.connect(pg); out = pg; }
+    out.connect(g);
+    o.start(t0);
+    o.stop(t0 + dur + 0.02);
+    nodes.push(o);
+  });
+  nodes[0].onended = () => { try { g.disconnect(); } catch (e) {} };
+  return nodes;
+}
+
+export function beepAt(freq, vol, when) {
+  const peak = Math.min(0.9, Math.max(0.0002, vol * BEEP_GAIN));
+  return voice(when, BEEP_DUR, peak, [[freq, 1], [freq * 2, 0.3]]);
+}
+
+// Pitido inmediato (reanuda el contexto si el móvil lo suspendió).
+// `currentVol` se mantiene por compatibilidad: masterGain ya aplica el volumen.
+export function beep(freq, vol = 0.25, currentVol) { // eslint-disable-line no-unused-vars
+  if (!AC || !masterGain) return;
+  if (AC.state === 'running') beepAt(freq, vol, AC.currentTime + 0.015);
+  else resumeAC().then(() => { if (AC.state === 'running') beepAt(freq, vol, AC.currentTime + 0.015); });
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // WIM HOF AUDIO FEEDBACK
 // ═══════════════════════════════════════════════════════════════════
 
-// ─── Wim Hof: tono largo que guía el inhale de recuperación
-// Sweep 600→520 Hz en 2s — señal clara de "inhala profundo ahora"
-export function whRecoveryTone() {
-  if (!AC || !masterGain) return;
-  const o = AC.createOscillator();
-  const g = AC.createGain();
-  
-  o.frequency.setValueAtTime(600, AC.currentTime);
-  o.frequency.linearRampToValueAtTime(520, AC.currentTime + 1.8);
-  g.gain.setValueAtTime(0.22, AC.currentTime);
-  g.gain.linearRampToValueAtTime(0.12, AC.currentTime + 1.8);
-  g.gain.linearRampToValueAtTime(0.001, AC.currentTime + 2.0);
-  
-  o.type = 'sine';
-  o.connect(g);
-  g.connect(masterGain);
-  o.start();
-  o.stop(AC.currentTime + 2.0);
+// Tono largo que guía el inhale de recuperación: sweep 600→520 Hz en 2 s
+export function whRecoveryToneAt(when) {
+  return voice(when, 2.0, 0.3, [[600, 1, 520], [1200, 0.25, 1040]], 0.05, 'lin');
 }
 
-// ─── Wim Hof: tick suave de orientación temporal durante holdEmpty
-// type: 'soft' (cada 10s), 'warning' (60s), 'invite' (80s)
-// Propósito: orientación temporal sin romper la quietud
-export function whRetentionTick(type = 'soft') {
-  if (!AC || !masterGain) return;
-  
-  const configs = {
-    soft:    { freq: 210, vol: 0.10, dur: 0.08 },  // apenas perceptible
-    warning: { freq: 330, vol: 0.15, dur: 0.12 },  // nota de atención
-    invite:  { freq: 420, vol: 0.18, dur: 0.20 }   // invitación a inhalar
-  };
-  
-  const c = configs[type];
-  const o = AC.createOscillator();
-  const g = AC.createGain();
-  
-  g.gain.setValueAtTime(c.vol, AC.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + c.dur);
-  o.frequency.value = c.freq;
-  o.type = 'sine';
-  
-  o.connect(g);
-  g.connect(masterGain);
-  o.start();
-  o.stop(AC.currentTime + c.dur + 0.02);
+// Tick suave de orientación temporal durante la retención
+// type: 'soft' (cada 10 s), 'warning' (60 s), 'invite' (80 s)
+const TICKS = {
+  soft:    { freq: 210, vol: 0.16, dur: 0.12 },
+  warning: { freq: 330, vol: 0.22, dur: 0.16 },
+  invite:  { freq: 420, vol: 0.26, dur: 0.24 },
+};
+export function whRetentionTickAt(type, when) {
+  const c = TICKS[type] || TICKS.soft;
+  return voice(when, c.dur, c.vol * BEEP_GAIN, [[c.freq, 1], [c.freq * 2, 0.35]], 0.008);
 }
 
-// ─── Wim Hof: tono de liberación al final del holdFull 15s
-// Señal de "exhala ahora" — sweep descendente 440→360 Hz
-export function whReleaseBeep() {
-  if (!AC || !masterGain) return;
-  const o = AC.createOscillator();
-  const g = AC.createGain();
-  
-  o.frequency.setValueAtTime(440, AC.currentTime);
-  o.frequency.linearRampToValueAtTime(360, AC.currentTime + 0.25);
-  g.gain.setValueAtTime(0.28, AC.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + 0.30);
-  
-  o.type = 'sine';
-  o.connect(g);
-  g.connect(masterGain);
-  o.start();
-  o.stop(AC.currentTime + 0.32);
+// Señal de "suelta / exhala" al final del recovery hold: 440→360 Hz
+export function whReleaseBeepAt(when) {
+  return voice(when, 0.32, 0.4, [[440, 1, 360], [880, 0.3, 720]], 0.01);
 }
+
+// Compatibilidad: versiones inmediatas
+export function whRecoveryTone()            { return whRecoveryToneAt(now() + 0.015); }
+export function whRetentionTick(type='soft'){ return whRetentionTickAt(type, now() + 0.015); }
+export function whReleaseBeep()             { return whReleaseBeepAt(now() + 0.015); }

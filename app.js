@@ -4,9 +4,10 @@
 // ════════════════════════════════════════════════════
 
 import { PRESETS } from './presets.js';
-import { initAC, startBinaural, startTone, stopBinaural, startNoise, stopNoise, beep, setVolume, getAC, getMasterGain, resumeAC, whRecoveryTone, whRetentionTick, whReleaseBeep } from './audio.js';
-import { BREATH_PRESETS, WH_DEFAULT, getPhaseDuration, getPhaseSequence, breathDur } from './breath.js';
+import { initAC, startBinaural, startTone, stopBinaural, startNoise, stopNoise, beepAt, cancelNodes, setVolume, getAC, resumeAC, retune, whRecoveryToneAt, whRetentionTickAt, whReleaseBeepAt } from './audio.js';
+import { BREATH_PRESETS, WH_DEFAULT, getPhaseDuration, getPhaseSequence } from './breath.js';
 import { I18N } from './i18n.js';
+import { renderBib } from './bib.js';
 import { initViz, setViz, resizeCanvas, initAnalyser, animateViz } from './viz.js';
 
 // ─── STATE ──────────────────────────────────────────────────────────
@@ -27,6 +28,7 @@ export const S = {
   cycles:        0,
   sessionSec:    0,
   breathPreset:  'coherencia',
+  customTiming:  false,     // true cuando el usuario mueve BPM/ratio
   activePreset:  null,      // NUEVO: referencia al objeto PRESETS[i] activo
   wh:            { ...WH_DEFAULT },
 };
@@ -34,8 +36,8 @@ export const S = {
 let LANG = 'es';
 
 // ─── i18n ───────────────────────────────────────────────────────────
-export function t(key) {
-  return (I18N[LANG] && I18N[LANG][key]) || I18N.es[key] || key;
+export function t(key, fallback) {
+  return (I18N[LANG] && I18N[LANG][key]) || I18N.es[key] || fallback || key;
 }
 
 export function setLang(lang) {
@@ -45,15 +47,18 @@ export function setLang(lang) {
   document.querySelectorAll('.lang-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.lang === lang));
   applyLang();
-  localStorage.setItem('coherencia_lang', lang);
+  renderBib(lang);
+  try { localStorage.setItem('coherencia_lang', lang); } catch (e) {}
 }
 
 function applyLang() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.dataset.i18n;
-    const val = t(key);
-    if (val) el.textContent = val;
+    // Guardar el texto original del HTML como respaldo: si falta una
+    // traducción, se muestra ese texto en vez de la clave cruda.
+    if (el.dataset.i18nDefault === undefined) el.dataset.i18nDefault = el.textContent;
+    el.textContent = t(el.dataset.i18n, el.dataset.i18nDefault);
   });
+  updatePhaseInfo();
 }
 
 // ─── APPLY PRESET (v3) ──────────────────────────────────────────────
@@ -81,6 +86,7 @@ export function applyPreset(id) {
   S.tone    = preset.audio.tone || null;  // null si no es healing
 
   // Breath params
+  S.customTiming = false;   // vuelve a los tiempos fijos de la técnica (box, 478)
   S.bpm     = preset.breathing.bpm || S.bpm;
   S.ratio   = preset.breathing.ratio || 1.0;
   S.breathPreset = preset.breathing.pattern;
@@ -110,6 +116,12 @@ export function applyPreset(id) {
 
   syncSliders();
   updateReadout();
+
+  saveSettings();
+  updatePhaseInfo();
+
+  // Móvil: cerrar el sheet para que el ▶ quede visible
+  if (isMobileLayout() && mobTab === 'presets') closeMobSheet();
 
   // Si está playing, DETENER para que el usuario pueda reiniciar con el nuevo preset
   if (S.playing) {
@@ -141,6 +153,7 @@ function syncSliders() {
   if (sBeat) sBeat.value = S.beat;
   if (sVol) sVol.value = S.vol * 100;
 
+  ['sBpm', 'sRatio', 'sHoldFull', 'sHoldEmpty', 'sCarrier', 'sBeat', 'sVol'].forEach(updateSliderFill);
   updateSliderDisplays();
 }
 
@@ -192,88 +205,105 @@ export function togglePlay() {
   if (!S.playing) {
     initAC();
     resumeAC();
+    setVolume(S.vol);   // volumen guardado (initAC parte en 0.6)
     initAnalyser();
     S.playing = true;
-    
+    requestWakeLock();
+
     // Resetear contadores de sesión ANTES de iniciar respiración
     S.cycles = 0;
     S.sessionSec = 0;
-    const sCycles = document.getElementById('sCycles');
-    const sTime = document.getElementById('sTime');
-    if (sCycles) sCycles.textContent = '0';
-    if (sTime) sTime.textContent = '0:00';
-    
+    setText('sCycles', '0');
+    setText('sTime', '0:00');
+
     if (S.binaural) {
       if (S.tone) startTone(S.tone, S.beat);
       else        startBinaural(S.carrier, S.beat);
     }
     if (S.noise) startNoise();
 
-    // Iniciar motor de respiración
+    // Iniciar motor de respiración (reloj del audio)
     if (S.breathPreset === 'wimhof') {
-      startWimHof();
+      S.wh.active = true;
+      S.wh.round = 0;
+      S.wh.repCount = 0;
+      S.wh.mode = 'reps';
+      updateWhDots();
+      startTimeline(wimHofGen());
     } else {
-      startBreathing();
+      startTimeline(genericGen());
     }
-    
-    // Iniciar interval del contador de tiempo
+    startBreathLoop();
+
+    // Contador de tiempo de sesión
     if (sessionIV) clearInterval(sessionIV);
     sessionIV = setInterval(() => {
       S.sessionSec++;
       const m = Math.floor(S.sessionSec / 60);
       const s = S.sessionSec % 60;
-      const sTime = document.getElementById('sTime');
-      if (sTime) sTime.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+      setText('sTime', `${m}:${s.toString().padStart(2, '0')}`);
     }, 1000);
 
-    // Iniciar visualizaciones
     animateViz();
 
-    // UI updates
-    document.getElementById('playBtn').classList.add('on');
-    document.getElementById('playBtn').textContent = '⏸';
+    const playBtn = document.getElementById('playBtn');
+    playBtn.classList.add('on');
+    playBtn.textContent = '⏸';
+    playBtn.setAttribute('aria-label', 'Pausa');
     document.getElementById('statusDot').classList.add('live');
-    
-    const statusTxt = document.getElementById('statusTxt');
-    if (statusTxt) statusTxt.textContent = t('statusActive');
-    
-    const whRow = document.getElementById('whRow');
-    if (whRow && S.breathPreset === 'wimhof') {
-      whRow.classList.add('visible');
-    }
+    setText('statusTxt', t('statusActive'));
+    document.getElementById('whRow')?.classList.toggle('visible', S.breathPreset === 'wimhof');
   } else {
     S.playing = false;
+    releaseWakeLock();
     stopBinaural();
     stopNoise();
     stopBreathing();
-    
-    // Detener contador de sesión
+
     if (sessionIV) {
       clearInterval(sessionIV);
       sessionIV = null;
     }
 
-    document.getElementById('playBtn').classList.remove('on');
-    document.getElementById('playBtn').textContent = '▶';
+    const playBtn = document.getElementById('playBtn');
+    playBtn.classList.remove('on');
+    playBtn.textContent = '▶';
+    playBtn.setAttribute('aria-label', 'Iniciar');
     document.getElementById('statusDot').classList.remove('live');
-    
-    const statusTxt = document.getElementById('statusTxt');
-    if (statusTxt) statusTxt.textContent = t('statusInactive');
-    
-    const whRow = document.getElementById('whRow');
-    if (whRow) whRow.classList.remove('visible');
+    setText('statusTxt', t('statusInactive'));
+    document.getElementById('whRow')?.classList.remove('visible');
+    updatePhaseInfo();
   }
 }
 
-// ─── BREATHING ENGINE ───────────────────────────────────────────────
-let breathTO = null;
-let _seqIndex = 0;
-let phaseStart = 0;
-let phaseDur = 0;
+function setText(id, txt) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = txt;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// MOTOR DE RESPIRACIÓN — programado en el reloj del audio
+// ════════════════════════════════════════════════════════════════════
+// Antes cada fase se encadenaba con setTimeout y el pitido sonaba cuando
+// el timer disparaba. Los timers del navegador se atrasan (pestaña en
+// segundo plano, móvil, hilo ocupado) y el error se acumula.
+//
+// Ahora un "generador" produce pasos {phase, dur, cues, enter} y un
+// planificador los coloca en la línea de tiempo de AC.currentTime con
+// LOOKAHEAD segundos de anticipación. Los pitidos (cues) se programan en
+// el motor de audio para el instante exacto. La parte visual (enter) se
+// ejecuta cuando AC.currentTime alcanza el inicio del paso.
+// Si el sistema suspende el audio, el reloj se congela y todo se pausa
+// en conjunto: al reanudar sigue sincronizado.
+const LOOKAHEAD = 2.5;   // s de audio programado por adelantado
+const PUMP_MS   = 150;   // frecuencia del planificador (también corre en rAF)
+
+let TL = null;           // { gen, queue, nextStart, cur, done }
+let pumpIV = null;
 let rafId = null;
-let sessionIV = null; // Interval para contador de tiempo de sesión
-let whTickTimeouts = []; // Timeouts para ticks de orientación en Wim Hof
-let whCountdownIV = null; // Interval para cuenta regresiva entre rondas
+let sessionIV = null;
+let phaseStart = 0;      // performance.now() del inicio de la fase actual
+let phaseDur = 0;        // ms (0 = retención abierta: se muestra el tiempo transcurrido)
 
 // Exponer para viz.js
 if (typeof window !== 'undefined') {
@@ -281,120 +311,152 @@ if (typeof window !== 'undefined') {
   window.phaseDur = 0;
 }
 
-function startBreathing() {
-  _seqIndex = 0;
-  const seq = getPhaseSequence(S);
-  if (seq.length > 0) {
-    runPhase(seq[0]);
-    startBreathLoop();
+function startTimeline(gen) {
+  stopTimeline();
+  TL = { gen, queue: [], nextStart: audioNow() + 0.15, cur: null, done: false };
+  pump();
+  pumpIV = setInterval(pump, PUMP_MS);
+}
+
+function stopTimeline() {
+  if (pumpIV) { clearInterval(pumpIV); pumpIV = null; }
+  if (TL) TL.queue.forEach(unscheduleStep);
+  TL = null;
+}
+
+function scheduleStep(step) {
+  unscheduleStep(step);
+  if (!S.beep || !step.cues) return;
+  const t = audioNow();
+  step.cues.forEach(c => {
+    const at = step.start + (c.at || 0);
+    if (at < t - 0.01 || at > step.end + 0.001) return;   // ya pasó / fuera del paso
+    step.nodes.push(...c.play(at));
+  });
+}
+
+function unscheduleStep(step) {
+  cancelNodes(step.nodes);
+  step.nodes = [];
+}
+
+function pump() {
+  if (!TL || !S.playing) return;
+  const t = audioNow();
+
+  // 1) Planificar pasos hasta t + LOOKAHEAD
+  while (!TL.done && TL.nextStart !== Infinity && TL.nextStart < t + LOOKAHEAD) {
+    const step = TL.gen.next();
+    if (!step) { TL.done = true; break; }
+    step.start = TL.nextStart;
+    step.end = step.dur === Infinity ? Infinity : step.start + step.dur;
+    step.nodes = [];
+    scheduleStep(step);
+    TL.queue.push(step);
+    TL.nextStart = step.end;
+  }
+
+  // 2) Avanzar al paso que está sonando
+  while (TL.queue.length > 1 && TL.queue[1].start <= t) TL.queue.shift();
+  const cur = TL.queue[0];
+  if (cur && cur.start <= t && cur !== TL.cur) {
+    TL.cur = cur;
+    enterStep(cur, t);
   }
 }
 
-function stopBreathing() {
-  if (breathTO) {
-    clearTimeout(breathTO);
-    breathTO = null;
-  }
-  if (rafId) {
-    cancelAnimationFrame(rafId);
-    rafId = null;
-  }
-  
-  // Limpiar ticks de Wim Hof
-  whTickTimeouts?.forEach(clearTimeout);
-  whTickTimeouts = [];
-  
-  // Limpiar cuenta regresiva de Wim Hof
-  if (whCountdownIV) {
-    clearInterval(whCountdownIV);
-    whCountdownIV = null;
-  }
-  
-  // Ocultar botón de continuar de Wim Hof
-  const whContinueBtn = document.getElementById('whContinueBtn');
-  if (whContinueBtn) {
-    whContinueBtn.style.display = 'none';
-    whContinueBtn.classList.remove('visible');
-  }
-  
-  S.phase = 'idle';
-  
-  // Reset orb
-  const orb = document.getElementById('orb');
-  const orbSec = document.getElementById('orbSec');
-  if (orb) {
-    orb.classList.remove('hold-full', 'hold-empty');
-    orb.classList.add('idle');
-    orb.style.transform = 'scale(1.0)';
-    orb.style.boxShadow = '0 0 12px rgba(68,136,204,.15)';
-    orb.style.borderColor = 'rgba(68,136,204,.25)';
-  }
-  if (orbSec) {
-    orbSec.textContent = '–';
-  }
-}
-
-// Loop de animación para actualizar contador y barra
-function startBreathLoop() {
-  function loop() {
-    if (!S.playing) return;
-    
-    const now = performance.now();
-    const elapsed = now - phaseStart;
-    
-    // Actualizar barra de progreso
-    if (phaseDur > 0) {
-      const prog = Math.min(elapsed / phaseDur, 1);
-      const barEl = document.getElementById('bBar');
-      if (barEl) {
-        barEl.style.transition = 'none';
-        
-        // inhale/holdFull llenan hacia adelante; exhale/holdEmpty drenan hacia atrás
-        if (S.phase === 'inhale' || S.phase === 'holdFull') {
-          barEl.style.width = prog * 100 + '%';
-        } else {
-          barEl.style.width = (1 - prog) * 100 + '%';
-        }
-      }
-      
-      // Contador de segundos en el orb
-      const orbSec = document.getElementById('orbSec');
-      if (orbSec) {
-        const remaining = Math.max(0, (phaseDur - elapsed) / 1000).toFixed(1);
-        orbSec.textContent = remaining;
-      }
-    } else {
-      // Retención indefinida - mostrar tiempo transcurrido
-      const orbSec = document.getElementById('orbSec');
-      if (orbSec) {
-        orbSec.textContent = (elapsed / 1000).toFixed(0) + 's';
-      }
-      const barEl = document.getElementById('bBar');
-      if (barEl) {
-        barEl.style.width = '50%';
-      }
-    }
-    
-    rafId = requestAnimationFrame(loop);
-  }
-  
-  loop();
-}
-
-function runPhase(phase) {
-  if (!S.playing) return;
-  S.phase = phase;
-  phaseDur = getPhaseDuration(phase, S);
-  phaseStart = performance.now();
-  
-  // Actualizar variables globales para viz.js
+function enterStep(step, t) {
+  S.phase = step.phase;
+  phaseDur = step.open || step.dur === Infinity ? 0 : step.dur * 1000;
+  phaseStart = performance.now() - Math.max(0, t - step.start) * 1000;
   window.phaseStart = phaseStart;
   window.phaseDur = phaseDur;
+  step.enter && step.enter();
+}
 
+// Reprogramar pasos futuros (cambio de BPM, ratio o retenciones en vivo)
+function replan() {
+  if (!TL) return;
+  const t = audioNow();
+  const future = TL.queue.filter(s => s.start > t + 0.02);
+  if (!future.length) return;
+  future.forEach(unscheduleStep);
+  TL.queue = TL.queue.filter(s => !future.includes(s));
+  TL.gen.rewind(future[0]);
+  TL.nextStart = future[0].start;
+  TL.done = false;
+  pump();
+}
+
+// Terminar el paso actual ahora (botón "Inhalar ahora" de Wim Hof)
+function endCurrentStepNow() {
+  if (!TL || !TL.cur) return;
+  const t = audioNow();
+  const cur = TL.cur;
+  const future = TL.queue.filter(s => s !== cur);
+  future.forEach(unscheduleStep);
+  unscheduleStep(cur);
+  if (future.length) TL.gen.rewind(future[0]);
+  cur.end = t;
+  TL.queue = [cur];
+  TL.nextStart = t + 0.05;
+  TL.done = false;
+  pump();
+}
+
+// Pitido on/off en vivo
+function rescheduleCues() {
+  if (TL) TL.queue.forEach(scheduleStep);
+}
+
+function audioNow() {
+  return getAC() ? getAC().currentTime : 0;
+}
+
+function bumpCycle() {
+  S.cycles++;
+  setText('sCycles', S.cycles);
+}
+
+// ─── Generador: técnicas genéricas (coherencia, box, 478, nadi…) ────
+const PHASE_BEEP = {
+  inhale:    [520, 0.28],
+  holdFull:  [440, 0.20],
+  exhale:    [360, 0.20],
+  holdEmpty: [280, 0.18],
+};
+
+function genericGen() {
+  return {
+    st: { i: 0, first: true },
+    next() {
+      const seq = getPhaseSequence(S);
+      if (!seq.length) return null;
+      const cursor = { ...this.st };
+      const i = this.st.i % seq.length;
+      const phase = seq[i];
+      const wrap = i === 0 && !this.st.first;
+      this.st = { i: (i + 1) % seq.length, first: false };
+      const [f, v] = PHASE_BEEP[phase];
+      return {
+        cursor, phase,
+        dur: getPhaseDuration(phase, S) / 1000,
+        cues: [{ at: 0, play: (t) => beepAt(f, v, t) }],
+        enter: () => {
+          if (wrap) bumpCycle();
+          showPhase(phase);
+          updatePhaseInfo();
+        },
+      };
+    },
+    rewind(step) { this.st = { ...step.cursor }; },
+  };
+}
+
+function showPhase(phase) {
   const orb = document.getElementById('orb');
   const bar = document.getElementById('bBar');
   const lbl = document.getElementById('orbLbl');
-
   if (!orb || !bar || !lbl) return;
 
   orb.classList.remove('hold-full', 'hold-empty', 'idle');
@@ -405,354 +467,267 @@ function runPhase(phase) {
       orb.style.transform = 'scale(1.42)';
       orb.style.boxShadow = '0 0 40px rgba(80,180,200,.3)';
       orb.style.borderColor = 'rgba(80,180,200,.7)';
-      orb.style.background = 'transparent';
       bar.style.background = 'var(--cyan)';
-      lbl.textContent = t('phaseInhale') || 'inhala';
+      lbl.textContent = t('phaseInhale');
       lbl.style.color = 'var(--cyan)';
-      if (S.beep) beep(520, 0.28, S.vol);
       break;
-
     case 'holdFull':
       orb.classList.add('hold-full');
       orb.style.transform = 'scale(1.42)';
-      lbl.textContent = t('phaseHoldFull') || 'retén';
+      lbl.textContent = t('phaseHoldFull');
       lbl.style.color = 'var(--gold)';
       bar.style.background = 'var(--gold)';
-      if (S.beep) beep(440, 0.2, S.vol);
       break;
-
     case 'exhale':
       orb.style.transform = 'scale(1.0)';
       orb.style.boxShadow = '0 0 12px rgba(68,136,204,.15)';
       orb.style.borderColor = 'rgba(68,136,204,.25)';
-      orb.style.background = 'transparent';
       bar.style.background = 'var(--blue)';
-      lbl.textContent = t('phaseExhale') || 'exhala';
+      lbl.textContent = t('phaseExhale');
       lbl.style.color = 'var(--cyan)';
-      if (S.beep) beep(360, 0.2, S.vol);
       break;
-
     case 'holdEmpty':
       orb.classList.add('hold-empty');
       orb.style.transform = 'scale(1.0)';
-      lbl.textContent = t('phaseHoldEmpty') || 'vacío';
+      lbl.textContent = t('phaseHoldEmpty');
       lbl.style.color = 'var(--purple)';
       bar.style.background = 'var(--purple)';
-      if (S.beep) beep(280, 0.18, S.vol);
       break;
   }
-
-  breathTO = setTimeout(nextPhase, phaseDur);
 }
 
-function nextPhase() {
-  if (!S.playing) return;
-
-  const seq = getPhaseSequence(S);
-  _seqIndex = (_seqIndex + 1) % seq.length;
-
-  if (_seqIndex === 0) {
-    S.cycles++;
-    const sCycles = document.getElementById('sCycles');
-    if (sCycles) sCycles.textContent = S.cycles;
-  }
-
-  runPhase(seq[_seqIndex]);
-}
-
-// ─── WIM HOF STATE MACHINE ──────────────────────────────────────────
-function startWimHof() {
-  const wh = S.wh;
-  wh.active = true;
-  wh.round = 0;
-  wh.repCount = 0;
-  wh.mode = 'reps';
-  updateWhDots();
-  startBreathLoop(); // Iniciar loop del orb
-  runWimHofRep();
-}
-
-function runWimHofRep() {
-  const wh = S.wh;
-  if (!S.playing) return;
-
-  if (wh.repCount >= wh.totalReps) {
-    wh.mode = 'retention';
-    beginWimHofRetention();
-    return;
-  }
-
-  const phaseCycle = document.getElementById('phaseCycle');
-  if (phaseCycle) {
-    phaseCycle.textContent = `${wh.repCount + 1}/${wh.totalReps}`;
-  }
-
-  // Última respiración (rep 30): exhale más larga y completa
-  const isLastRep = (wh.repCount === wh.totalReps - 1);
-  const exhaleTime = isLastRep ? 1400 : 800;
-
-  // INHALE - EL ORB SE INFLA
-  S.phase = 'inhale';
-  phaseDur = 1400;
-  phaseStart = performance.now();
-  window.phaseStart = phaseStart;
-  window.phaseDur = phaseDur;
-  
-  updateOrbSimple('inhala', 'scale(1.35)', '0 0 30px rgba(80,180,200,.4)', 'var(--cyan)');
-  if (S.beep) beep(520, 0.15, S.vol);
-
-  breathTO = setTimeout(() => {
-    if (!S.playing) return;
-    
-    // EXHALE - EL ORB SE DESINFLA
-    S.phase = 'exhale';
-    phaseDur = exhaleTime;
-    phaseStart = performance.now();
-    window.phaseStart = phaseStart;
-    window.phaseDur = phaseDur;
-    
-    updateOrbSimple('exhala', 'scale(1.0)', '0 0 12px rgba(68,136,204,.2)', 'var(--cyan)');
-    
-    // Pitido de exhale - más audible
-    if (S.beep) {
-      if (isLastRep) {
-        beep(360, 0.22, S.vol); // Señal de última respiración: exhala completamente
-      } else {
-        beep(360, 0.12, S.vol); // Exhale normal
-      }
-    }
-    
-    breathTO = setTimeout(() => {
-      wh.repCount++;
-      runWimHofRep();
-    }, exhaleTime);
-  }, 1400);
-}
-
-function beginWimHofRetention() {
-  if (!S.playing) return;
-  S.phase = 'holdEmpty';
-  
-  // Retención indefinida - mostrar tiempo transcurrido
-  phaseDur = 0;
-  phaseStart = performance.now();
-  window.phaseStart = phaseStart;
-  window.phaseDur = phaseDur;
-
-  const orb = document.getElementById('orb');
-  if (orb) orb.classList.add('hold-empty');
-  
-  updateOrbSimple('retén', 'scale(0.9)', '0 0 20px rgba(155,125,232,.5)', 'var(--purple)');
-  if (S.beep) beep(280, 0.25, S.vol);
-
+// ─── Texto bajo el orbe: programa · técnica · ciclo ─────────────────
+export function updatePhaseInfo() {
   const phaseTxt = document.getElementById('phaseTxt');
-  if (phaseTxt) phaseTxt.textContent = '⏸ Retención · presiona ▶ cuando necesites respirar';
+  const phaseCycle = document.getElementById('phaseCycle');
+  if (!phaseTxt || !S.activePreset) return;
+  // Wim Hof gestiona su propio texto mientras corre
+  if (S.playing && S.breathPreset === 'wimhof') return;
 
-  // Mostrar botón de continuar
-  const whContinueBtn = document.getElementById('whContinueBtn');
-  if (whContinueBtn) {
-    whContinueBtn.style.display = 'flex';
-    whContinueBtn.classList.add('visible');
-  }
-
-  // Programar ticks de orientación temporal
-  const WH_TICKS = [
-    { ms: 10000, type: 'soft' },
-    { ms: 20000, type: 'soft' },
-    { ms: 30000, type: 'soft' },
-    { ms: 40000, type: 'soft' },
-    { ms: 50000, type: 'soft' },
-    { ms: 60000, type: 'warning' },
-    { ms: 70000, type: 'soft' },
-    { ms: 80000, type: 'invite' },
-  ];
-  
-  whTickTimeouts = WH_TICKS.map(({ ms, type }) =>
-    setTimeout(() => {
-      if (S.phase === 'holdEmpty' && S.beep) whRetentionTick(type);
-    }, ms)
-  );
-
-  // Auto-advance después de holdEmptyMax (seguridad)
-  breathTO = setTimeout(finishWimHofRetention, S.wh.holdEmptyMax * 1000);
+  const card = document.querySelector(`.preset-card[data-preset-id="${S.activePreset.id}"] .pc-benefit`);
+  const name = card ? card.textContent.trim() : S.activePreset.id;
+  const tech = (BREATH_PRESETS[S.breathPreset] || {}).name || '';
+  phaseTxt.textContent = tech && tech !== name ? `${name} · ${tech}` : name;
+  if (phaseCycle) phaseCycle.textContent = S.playing ? `${t('cycleLbl')} ${S.cycles + 1}` : '';
 }
 
-function finishWimHofRetention() {
-  clearTimeout(breathTO);
-  
-  // Limpiar ticks de retención
-  whTickTimeouts?.forEach(clearTimeout);
-  whTickTimeouts = [];
-  
-  // Ocultar botón de continuar
+function stopBreathing() {
+  stopTimeline();
+  if (rafId) {
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
+
   const whContinueBtn = document.getElementById('whContinueBtn');
   if (whContinueBtn) {
     whContinueBtn.style.display = 'none';
     whContinueBtn.classList.remove('visible');
   }
-  
-  if (!S.playing) return;
 
-  const orb = document.getElementById('orb');
-  if (orb) orb.classList.remove('hold-empty');
-
-  // RECOVERY INHALE - EL ORB SE INFLA AL MÁXIMO
-  S.phase = 'inhale';
-  phaseDur = 2000;
-  phaseStart = performance.now();
-  window.phaseStart = phaseStart;
-  window.phaseDur = phaseDur;
-  
-  updateOrbSimple('recupera', 'scale(1.5)', '0 0 40px rgba(80,180,200,.6)', 'var(--cyan)');
-  
-  // Tono de recuperación (sweep 600→520 Hz en 2s)
-  if (S.beep) whRecoveryTone();
-
-  breathTO = setTimeout(() => {
-    if (!S.playing) return;
-    
-    // RECOVERY HOLD (holdFull 15s)
-    S.phase = 'holdFull';
-    phaseDur = S.wh.recoveryHold * 1000;
-    phaseStart = performance.now();
-    window.phaseStart = phaseStart;
-    window.phaseDur = phaseDur;
-    
-    const orb = document.getElementById('orb');
-    if (orb) orb.classList.add('hold-full');
-    
-    updateOrbSimple('retén', 'scale(1.5)', '0 0 35px rgba(212,168,75,.6)', 'var(--gold)');
-    if (S.beep) beep(440, 0.25, S.vol);
-    
-    // Ticks durante holdFull 15s
-    setTimeout(() => { if (S.phase === 'holdFull' && S.beep) whRetentionTick('soft'); }, 5000);
-    setTimeout(() => { if (S.phase === 'holdFull' && S.beep) whRetentionTick('soft'); }, 10000);
-    setTimeout(() => { if (S.phase === 'holdFull' && S.beep) whReleaseBeep(); }, 15000);
-
-    breathTO = setTimeout(advanceWimHof, S.wh.recoveryHold * 1000);
-  }, 2000);
-}
-
-function advanceWimHof() {
-  const wh = S.wh;
-  
-  // Limpiar ticks pendientes
-  whTickTimeouts?.forEach(clearTimeout);
-  whTickTimeouts = [];
-  
-  const orb = document.getElementById('orb');
-  if (orb) orb.classList.remove('hold-full', 'hold-empty');
-
-  // Si completamos todas las rondas
-  if (wh.round + 1 >= wh.totalRounds) {
-    wh.round++;
-    const phaseTxt = document.getElementById('phaseTxt');
-    if (phaseTxt) phaseTxt.textContent = '✓ Wim Hof completado';
-    wh.active = false;
-    return;
-  }
-
-  // EXHALE LENTA después del recovery hold
-  S.phase = 'exhale';
-  phaseDur = 3000; // 3 segundos de exhale lenta
-  phaseStart = performance.now();
-  window.phaseStart = phaseStart;
-  window.phaseDur = phaseDur;
-  
-  updateOrbSimple('exhala', 'scale(1.0)', '0 0 12px rgba(68,136,204,.2)', 'var(--cyan)');
-  if (S.beep) beep(360, 0.18, S.vol);
-
-  breathTO = setTimeout(() => {
-    if (!S.playing) return;
-    
-    // PAUSA DE 5 SEGUNDOS CON CUENTA REGRESIVA
-    wh.round++;
-    wh.repCount = 0;
-    wh.mode = 'reps';
-    S.cycles++;
-    
-    const sCycles = document.getElementById('sCycles');
-    if (sCycles) sCycles.textContent = S.cycles;
-    
-    updateWhDots();
-    
-    // Iniciar cuenta regresiva de 5 segundos
-    beginRoundTransition();
-  }, 3000);
-}
-
-// Nueva función: cuenta regresiva de 5s entre rondas
-function beginRoundTransition() {
-  if (!S.playing) return;
-  
   S.phase = 'idle';
-  phaseDur = 5000;
-  phaseStart = performance.now();
-  window.phaseStart = phaseStart;
-  window.phaseDur = phaseDur;
-  
+  S.wh.active = false;
+  setText('phaseCycle', '');
+
   const orb = document.getElementById('orb');
-  const orbSec = document.getElementById('orbSec');
-  const phaseTxt = document.getElementById('phaseTxt');
-  
   if (orb) {
+    orb.classList.remove('hold-full', 'hold-empty');
+    orb.classList.add('idle');
+    orb.style.transition = 'transform .6s ease, box-shadow .6s ease, border-color .6s ease';
     orb.style.transform = 'scale(1.0)';
-    orb.style.boxShadow = '0 0 15px rgba(80,180,200,.25)';
-    orb.style.borderColor = 'rgba(80,180,200,.4)';
+    orb.style.boxShadow = '0 0 12px rgba(68,136,204,.15)';
+    orb.style.borderColor = 'rgba(68,136,204,.25)';
   }
-  
-  if (phaseTxt) {
-    phaseTxt.textContent = `${t('whPreparing')} ${S.wh.round + 1}...`;
-  }
-  
-  // Cuenta regresiva visual en el orb
-  let countdown = 5;
-  if (orbSec) orbSec.textContent = countdown;
-  
-  whCountdownIV = setInterval(() => {
-    countdown--;
-    if (orbSec) orbSec.textContent = countdown;
-    
-    // Pitidos en los últimos 3 segundos (3, 2, 1)
-    if (countdown <= 3 && countdown > 0 && S.beep) {
-      beep(440 + (countdown * 40), 0.20, S.vol); // Tono ascendente: 480, 520, 560 Hz
-    }
-  }, 1000);
-  
-  // Después de 5 segundos, iniciar la nueva ronda
-  breathTO = setTimeout(() => {
-    if (whCountdownIV) {
-      clearInterval(whCountdownIV);
-      whCountdownIV = null;
-    }
-    if (!S.playing) return;
-    
-    if (phaseTxt) {
-      phaseTxt.textContent = `${t('whRound')} ${S.wh.round + 1} / ${S.wh.totalRounds}`;
-    }
-    
-    // Pitido final más fuerte para señalar inicio
-    if (S.beep) beep(600, 0.28, S.vol);
-    
-    // Iniciar primera respiración de la nueva ronda
-    runWimHofRep();
-  }, 5000);
+  const lbl = document.getElementById('orbLbl');
+  if (lbl) { lbl.textContent = t('orbReady'); lbl.style.color = ''; }
+  setText('orbSec', '–');
+  const bar = document.getElementById('bBar');
+  if (bar) bar.style.width = '0%';
 }
 
-// Función expuesta para el botón de continuar durante holdEmpty
+// Loop de animación: planificador + contador + barra
+function startBreathLoop() {
+  if (rafId) cancelAnimationFrame(rafId);
+  const barEl = document.getElementById('bBar');
+  const orbSec = document.getElementById('orbSec');
+  function loop() {
+    if (!S.playing) return;
+    pump();
+
+    const elapsed = performance.now() - phaseStart;
+    if (S.phase === 'idle' && !phaseDur) {
+      // sin fase activa (p. ej. Wim Hof completado)
+    } else if (phaseDur > 0) {
+      const prog = Math.min(elapsed / phaseDur, 1);
+      if (barEl) {
+        barEl.style.transition = 'none';
+        // inhale/holdFull llenan hacia adelante; exhale/holdEmpty drenan
+        barEl.style.width = (S.phase === 'inhale' || S.phase === 'holdFull' ? prog : 1 - prog) * 100 + '%';
+      }
+      if (orbSec) orbSec.textContent = Math.max(0, (phaseDur - elapsed) / 1000).toFixed(1);
+    } else {
+      // Retención abierta: tiempo transcurrido
+      if (orbSec) orbSec.textContent = Math.floor(elapsed / 1000) + 's';
+      if (barEl) barEl.style.width = '50%';
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+// ─── Generador: Wim Hof ─────────────────────────────────────────────
+// Ronda: N respiraciones rápidas → retención en vacío abierta (▶ para
+// terminar, máximo holdEmptyMax) → inhala de recuperación → retención
+// llena recoveryHold s → suelta → cuenta regresiva → siguiente ronda.
+const WH_TICKS = [
+  [10, 'soft'], [20, 'soft'], [30, 'soft'], [40, 'soft'], [50, 'soft'],
+  [60, 'warning'], [70, 'soft'], [80, 'invite'],
+];
+
+function wimHofGen() {
+  const wh = S.wh;
+  return {
+    st: { stage: 'rep-in', round: 0, rep: 0 },
+    next() {
+      const cursor = { ...this.st };
+      const { stage, round, rep } = this.st;
+      const roundTxt = `${t('whRound')} ${round + 1} / ${wh.totalRounds}`;
+
+      switch (stage) {
+        case 'rep-in': {
+          const roundStart = rep === 0 && round > 0;
+          this.st = { ...this.st, stage: 'rep-out' };
+          return {
+            cursor, phase: 'inhale', dur: 1.4,
+            cues: [{ at: 0, play: (t0) => roundStart ? beepAt(600, 0.28, t0) : beepAt(520, 0.15, t0) }],
+            enter: () => {
+              wh.mode = 'reps'; wh.round = round; wh.repCount = rep;
+              setText('phaseTxt', roundTxt);
+              setText('phaseCycle', `${rep + 1}/${wh.totalReps}`);
+              updateOrbSimple(t('phaseInhale'), 'scale(1.35)', '0 0 30px rgba(80,180,200,.4)', 'var(--cyan)');
+            },
+          };
+        }
+        case 'rep-out': {
+          const last = rep === wh.totalReps - 1;
+          this.st = { ...this.st, rep: rep + 1, stage: last ? 'retention' : 'rep-in' };
+          return {
+            cursor, phase: 'exhale', dur: last ? 1.4 : 0.8,
+            cues: [{ at: 0, play: (t0) => beepAt(360, last ? 0.22 : 0.12, t0) }],
+            enter: () => updateOrbSimple(t('phaseExhale'), 'scale(1.0)', '0 0 12px rgba(68,136,204,.2)', 'var(--cyan)'),
+          };
+        }
+        case 'retention': {
+          const max = wh.holdEmptyMax;
+          this.st = { ...this.st, stage: 'recover' };
+          return {
+            cursor, phase: 'holdEmpty', dur: max, open: true, kind: 'retention',
+            cues: [
+              { at: 0, play: (t0) => beepAt(280, 0.25, t0) },
+              ...WH_TICKS.filter(([s]) => s < max).map(([s, type]) => ({ at: s, play: (t0) => whRetentionTickAt(type, t0) })),
+            ],
+            enter: () => {
+              wh.mode = 'retention';
+              document.getElementById('orb')?.classList.add('hold-empty');
+              updateOrbSimple(t('phaseHoldFull'), 'scale(0.9)', '0 0 20px rgba(155,125,232,.5)', 'var(--purple)');
+              setText('phaseTxt', t('whRetentionHint'));
+              setText('phaseCycle', roundTxt);
+              showWhContinue(true);
+            },
+          };
+        }
+        case 'recover':
+          this.st = { ...this.st, stage: 'hold' };
+          return {
+            cursor, phase: 'inhale', dur: 2.0,
+            cues: [{ at: 0, play: (t0) => whRecoveryToneAt(t0) }],
+            enter: () => {
+              wh.mode = 'recovery';
+              showWhContinue(false);
+              document.getElementById('orb')?.classList.remove('hold-empty');
+              updateOrbSimple(t('phaseRecover'), 'scale(1.5)', '0 0 40px rgba(80,180,200,.6)', 'var(--cyan)');
+              setText('phaseTxt', t('whRecoveryTxt'));
+            },
+          };
+        case 'hold': {
+          const dur = wh.recoveryHold;
+          this.st = { ...this.st, stage: 'release' };
+          return {
+            cursor, phase: 'holdFull', dur,
+            cues: [
+              { at: 0, play: (t0) => beepAt(440, 0.25, t0) },
+              ...[5, 10].filter(s => s < dur).map(s => ({ at: s, play: (t0) => whRetentionTickAt('soft', t0) })),
+            ],
+            enter: () => {
+              document.getElementById('orb')?.classList.add('hold-full');
+              updateOrbSimple(t('phaseHoldFull'), 'scale(1.5)', '0 0 35px rgba(212,168,75,.6)', 'var(--gold)');
+            },
+          };
+        }
+        case 'release': {
+          const lastRound = round + 1 >= wh.totalRounds;
+          this.st = { stage: lastRound ? 'done' : 'transition', round: round + 1, rep: 0 };
+          return {
+            cursor, phase: 'exhale', dur: 3.0,
+            cues: [{ at: 0, play: (t0) => whReleaseBeepAt(t0) }],
+            enter: () => {
+              document.getElementById('orb')?.classList.remove('hold-full', 'hold-empty');
+              updateOrbSimple(t('phaseExhale'), 'scale(1.0)', '0 0 12px rgba(68,136,204,.2)', 'var(--cyan)');
+              setText('phaseTxt', roundTxt);
+              bumpCycle();
+              wh.round = round + 1;
+              updateWhDots();
+            },
+          };
+        }
+        case 'transition':
+          this.st = { ...this.st, stage: 'rep-in' };
+          return {
+            cursor, phase: 'idle', dur: 5.0,
+            // Pitidos ascendentes en los últimos 3 s: 560, 520, 480 Hz
+            cues: [[2, 560], [3, 520], [4, 480]].map(([s, f]) => ({ at: s, play: (t0) => beepAt(f, 0.2, t0) })),
+            enter: () => {
+              updateOrbSimple('', 'scale(1.0)', '0 0 15px rgba(80,180,200,.25)', 'rgba(80,180,200,.4)');
+              setText('phaseTxt', `${t('whPreparing')} ${round + 1}…`);
+              setText('phaseCycle', '');
+            },
+          };
+        case 'done':
+          this.st = { ...this.st, stage: 'end' };
+          return {
+            cursor, phase: 'idle', dur: Infinity, open: true,
+            enter: () => {
+              wh.active = false;
+              updateOrbSimple('✓', 'scale(1.0)', '0 0 20px rgba(78,203,138,.35)', 'var(--green)');
+              setText('phaseTxt', t('whDone'));
+              setText('phaseCycle', '');
+              setText('orbSec', '');
+            },
+          };
+        default:
+          return null;
+      }
+    },
+    rewind(step) { this.st = { ...step.cursor }; },
+  };
+}
+
+function showWhContinue(show) {
+  const btn = document.getElementById('whContinueBtn');
+  if (!btn) return;
+  btn.style.display = show ? 'flex' : 'none';
+  btn.classList.toggle('visible', show);
+}
+
+// Botón "Inhalar ahora" durante la retención en vacío
 export function whContinue() {
-  if (S.wh.active && S.wh.mode === 'retention' && S.phase === 'holdEmpty') {
-    finishWimHofRetention();
+  if (S.playing && TL && TL.cur && TL.cur.kind === 'retention') {
+    endCurrentStepNow();
   }
 }
 
 function updateWhDots() {
   const wh = S.wh;
-  const whLbl = document.getElementById('whLbl');
-  if (whLbl) {
-    whLbl.textContent = `${Math.min(wh.round + 1, wh.totalRounds)} / ${wh.totalRounds}`;
-  }
-
+  setText('whLbl', `${Math.min(wh.round + 1, wh.totalRounds)} / ${wh.totalRounds}`);
   for (let i = 0; i < 4; i++) {
     const dot = document.getElementById(`whD${i}`);
     if (dot) {
@@ -766,14 +741,13 @@ function updateWhDots() {
 function updateOrbSimple(label, transform, shadow, color) {
   const orb = document.getElementById('orb');
   const lbl = document.getElementById('orbLbl');
-  
   if (orb) {
+    orb.classList.remove('idle');
     orb.style.transition = 'transform 0.8s ease-in-out, box-shadow 0.8s ease-in-out, border-color 0.8s ease-in-out';
     orb.style.transform = transform;
     orb.style.boxShadow = shadow;
     orb.style.borderColor = color;
   }
-  
   if (lbl) {
     lbl.textContent = label;
     lbl.style.color = color;
@@ -785,9 +759,11 @@ export function onSliderChange(id, value) {
   switch (id) {
     case 'sBpm':
       S.bpm = parseFloat(value);
+      S.customTiming = true;
       break;
     case 'sRatio':
       S.ratio = parseFloat(value);
+      S.customTiming = true;
       break;
     case 'sHoldFull':
       S.holdFull = parseInt(value);
@@ -797,15 +773,16 @@ export function onSliderChange(id, value) {
       break;
     case 'sCarrier':
       S.carrier = parseInt(value);
-      if (S.playing && S.binaural && !S.tone) {
-        stopBinaural();
+      // En presets solfeggio la portadora real es S.tone: mover este
+      // slider pasa a modo binaural libre con la nueva portadora.
+      if (S.tone) S.tone = null;
+      if (S.playing && S.binaural && !retune(S.carrier, S.beat)) {
         startBinaural(S.carrier, S.beat);
       }
       break;
     case 'sBeat':
       S.beat = parseFloat(value);
-      if (S.playing && S.binaural) {
-        stopBinaural();
+      if (S.playing && S.binaural && !retune(S.tone || S.carrier, S.beat)) {
         if (S.tone) startTone(S.tone, S.beat);
         else        startBinaural(S.carrier, S.beat);
       }
@@ -813,10 +790,16 @@ export function onSliderChange(id, value) {
     case 'sVol':
       S.vol = parseInt(value) / 100;
       setVolume(S.vol);
+      saveSettings();
       break;
+  }
+  // Cambios de respiración: reprogramar las fases futuras ya planificadas
+  if (['sBpm', 'sRatio', 'sHoldFull', 'sHoldEmpty'].includes(id) && S.playing && S.breathPreset !== 'wimhof') {
+    replan();
   }
   updateSliderDisplays();
   updateReadout();
+  updateSliderFill(id);
 }
 
 // ─── TOGGLE HANDLERS ────────────────────────────────────────────────
@@ -835,6 +818,7 @@ export function tog(id) {
       break;
     case 'beep':
       S.beep = !S.beep;
+      rescheduleCues();
       break;
     case 'noise':
       S.noise = !S.noise;
@@ -845,10 +829,55 @@ export function tog(id) {
       break;
   }
   
+  syncToggle(id);
+  saveSettings();
+}
+
+function syncToggle(id) {
   const track = document.getElementById(`t${id.charAt(0).toUpperCase() + id.slice(1)}`);
   if (track) {
     track.classList.toggle('on', S[id]);
+    const row = track.closest('.tog-row');
+    if (row) row.setAttribute('aria-checked', S[id] ? 'true' : 'false');
   }
+}
+
+// Relleno del track del slider (la parte recorrida en color)
+function updateSliderFill(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const min = parseFloat(el.min) || 0, max = parseFloat(el.max) || 100;
+  const pct = ((parseFloat(el.value) - min) / (max - min)) * 100;
+  el.style.setProperty('--fill', `${Math.max(0, Math.min(100, pct))}%`);
+}
+
+// ─── AJUSTES PERSISTENTES ───────────────────────────────────────────
+// Volumen, pitido, binaural, ruido, último preset y visualización.
+const SETTINGS_KEY = 'coherencia_settings';
+
+function loadSettings() {
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; }
+  catch (e) { return {}; }
+}
+
+export function saveSettings() {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+      vol: S.vol,
+      beep: S.beep,
+      binaural: S.binaural,
+      noise: S.noise,
+      preset: S.activePreset ? S.activePreset.id : null,
+      viz: currentVizName,
+    }));
+  } catch (e) {}
+}
+
+let currentVizName = 'lissajous';
+export function setVizAndSave(name) {
+  currentVizName = name;
+  setViz(name);
+  saveSettings();
 }
 
 // ─── LEFT TAB SWITCHER ──────────────────────────────────────────────
@@ -880,8 +909,19 @@ export function init() {
   // Inicializar visualizaciones
   initViz();
 
-  // Aplicar primer preset por defecto
-  applyPreset('alpha10');
+  // Restaurar ajustes guardados (volumen, toggles, último preset, viz)
+  const saved = loadSettings();
+  if (typeof saved.vol === 'number') S.vol = Math.max(0, Math.min(1, saved.vol));
+  ['beep', 'binaural', 'noise'].forEach(k => {
+    if (typeof saved[k] === 'boolean') S[k] = saved[k];
+    syncToggle(k);
+  });
+  const startPreset = saved.preset && PRESETS.some(p => p.id === saved.preset) ? saved.preset : 'alpha10';
+  applyPreset(startPreset);
+  if (saved.viz) {
+    currentVizName = saved.viz;
+    setViz(saved.viz);
+  }
 
   // Attach slider listeners
   const sliders = ['sBpm', 'sRatio', 'sHoldFull', 'sHoldEmpty', 'sCarrier', 'sBeat', 'sVol'];
@@ -892,13 +932,49 @@ export function init() {
     }
   });
 
+  // Accesibilidad: elementos clicables que son <div> → foco y teclado
+  const roles = [
+    ['.preset-card', 'button'], ['.tog-row', 'switch'], ['.left-tab', 'tab'],
+    ['.mob-tab', 'tab'], ['.bib-tab', 'tab'], ['.mob-sheet-handle', 'button'],
+  ];
+  roles.forEach(([sel, role]) => document.querySelectorAll(sel).forEach(el => {
+    el.setAttribute('role', role);
+    if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+  }));
+  document.addEventListener('keydown', (e) => {
+    const el = e.target;
+    if ((e.key === 'Enter' || e.key === ' ') && el.matches && el.matches(roles.map(r => r[0]).join(','))) {
+      e.preventDefault();
+      el.click();
+    }
+    if (e.key === 'Escape') {
+      closeWizard();
+      closeBib();
+      closeMobSheet();
+    }
+  });
+  document.querySelector('.mob-sheet-handle')?.setAttribute('aria-label', 'Cerrar');
+
+  // Layout móvil/escritorio
+  if (MOBILE_MQ) {
+    if (MOBILE_MQ.addEventListener) MOBILE_MQ.addEventListener('change', onLayoutChange);
+    else if (MOBILE_MQ.addListener) MOBILE_MQ.addListener(onLayoutChange);
+  }
+
+  // Al volver a la app: reanudar audio y re-pedir wake lock
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && S.playing) {
+      resumeAC();
+      requestWakeLock();
+    }
+  });
+
   // Resize handler
   window.addEventListener('resize', resizeCanvas);
   window.addEventListener('orientationchange', () => {
     setTimeout(resizeCanvas, 100);
   });
 
-  console.log('🎵 Coherencia v8 modular loaded');
 }
 
 // Re-exportar funciones de viz para uso global
@@ -1114,6 +1190,7 @@ function getCurrentLang() {
 // ════════════════════════════════════════════════════════════════════════════
 
 export function openBib() {
+  if (!document.querySelector('#bibBody .bib-section')) renderBib(LANG);
   const overlay = document.getElementById('bibOverlay');
   if (overlay) overlay.classList.add('open');
 }
@@ -1123,9 +1200,27 @@ export function closeBib() {
   if (overlay) overlay.classList.remove('open');
 }
 
-export function openMobSheet(tab) {
+// ─── MOBILE BOTTOM SHEET ────────────────────────────────────────────
+// Antes el sheet se abría vacío: en móvil no había forma de elegir
+// presets ni mover controles. Ahora movemos (no clonamos, para conservar
+// ids y listeners) los paneles de la columna izquierda dentro del sheet.
+const MOBILE_MQ = typeof window !== 'undefined' ? window.matchMedia('(max-width:700px)') : null;
+let mobTab = 'presets';
+
+function movePanelsTo(container) {
+  const presets = document.getElementById('presetsPanel');
+  const ctrl = document.getElementById('ctrlPanel');
+  if (!container || !presets || !ctrl) return;
+  if (presets.parentElement !== container) container.appendChild(presets);
+  if (ctrl.parentElement !== container) container.appendChild(ctrl);
+}
+
+export function openMobSheet(tab = 'presets') {
   const sheet = document.getElementById('mobSheet');
-  if (sheet) sheet.classList.add('open');
+  if (!sheet) return;
+  movePanelsTo(document.getElementById('mobSheetBody'));
+  mobSwitchTab(tab);
+  sheet.classList.add('open');
 }
 
 export function closeMobSheet() {
@@ -1133,8 +1228,56 @@ export function closeMobSheet() {
   if (sheet) sheet.classList.remove('open');
 }
 
+export function toggleMobSheet(tab = 'presets') {
+  const sheet = document.getElementById('mobSheet');
+  if (sheet && sheet.classList.contains('open')) closeMobSheet();
+  else openMobSheet(tab);
+}
+
 export function mobSwitchTab(tab) {
-  console.log('Mobile tab switch:', tab);
+  mobTab = tab === 'controls' ? 'controls' : 'presets';
+  const presets = document.getElementById('presetsPanel');
+  const ctrl = document.getElementById('ctrlPanel');
+  if (presets) presets.style.display = mobTab === 'presets' ? 'block' : 'none';
+  if (ctrl) ctrl.style.display = mobTab === 'controls' ? 'flex' : 'none';
+  document.getElementById('mobTabPresets')?.classList.toggle('active', mobTab === 'presets');
+  document.getElementById('mobTabControls')?.classList.toggle('active', mobTab === 'controls');
+  const body = document.getElementById('mobSheetBody');
+  if (body) body.scrollTop = 0;
+}
+
+// Al pasar a escritorio, devolver los paneles a la columna izquierda
+function onLayoutChange() {
+  if (MOBILE_MQ && !MOBILE_MQ.matches) {
+    closeMobSheet();
+    movePanelsTo(document.getElementById('leftBody'));
+    const programsActive = document.getElementById('tabPrograms')?.classList.contains('active');
+    switchLeftTab(programsActive === false ? 'controls' : 'programs');
+  }
+}
+
+export function isMobileLayout() {
+  return !!(MOBILE_MQ && MOBILE_MQ.matches);
+}
+
+// ─── WAKE LOCK ──────────────────────────────────────────────────────
+// En móvil, si la pantalla se apaga el sistema suspende el audio y los
+// temporizadores → los pitidos se retrasan o desaparecen. Mantener la
+// pantalla encendida mientras la sesión está activa.
+let wakeLock = null;
+
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator && !wakeLock && document.visibilityState === 'visible') {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    }
+  } catch (e) { wakeLock = null; }
+}
+
+function releaseWakeLock() {
+  try { wakeLock && wakeLock.release(); } catch (e) {}
+  wakeLock = null;
 }
 
 export function handleOverlayClick(event) {
