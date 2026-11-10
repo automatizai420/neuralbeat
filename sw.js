@@ -5,7 +5,7 @@
 // los problemas de "versión vieja pegada" y la app abre offline.
 // Sube CACHE_VERSION si cambia la lista de archivos precargados.
 // ════════════════════════════════════════════════════
-const CACHE_VERSION = 'coherencia-v9-2';
+const CACHE_VERSION = 'coherencia-v9-3';
 const SHELL = [
   './',
   './index.html',
@@ -16,6 +16,8 @@ const SHELL = [
   './viz.js',
   './i18n.js',
   './bib.js',
+  './intent.js',
+  './welcome.js',
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/icon-192.png',

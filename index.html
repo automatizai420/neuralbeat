@@ -850,6 +850,112 @@ html:lang(hi) .bib-footer-note,html:lang(hi) .wiz-step-body,html:lang(hi) .bib-r
   .bib-ref{font-size:11px;}
   .bib-footer-note{font-size:10px;}
 }
+
+/* ══════════════════════════════════════════════════════
+   BIENVENIDA + NOVEDADES (welcome.js)
+══════════════════════════════════════════════════════ */
+.welcome-btn{border-color:rgba(80,180,200,.45);color:var(--cyan);background:rgba(80,180,200,.08);}
+.welcome-btn:hover{background:rgba(80,180,200,.16);}
+body.ob-lock .mob-sheet{visibility:hidden;}
+.ob-overlay{
+  display:none;position:fixed;inset:0;z-index:9500;
+  background:radial-gradient(ellipse at 50% 0%,rgba(80,180,200,.12),transparent 60%),rgba(4,7,12,.94);
+  align-items:flex-start;justify-content:center;overflow-y:auto;
+  padding:max(24px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom));
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+}
+.ob-overlay.open{display:flex;animation:obIn .35s ease;}
+@keyframes obIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.ob-card{
+  width:100%;max-width:660px;margin:auto 0;
+  background:linear-gradient(180deg,#0d1b2a,#0a1422);
+  border:1px solid rgba(80,180,200,.22);border-radius:18px;
+  padding:22px 24px 18px;box-shadow:0 30px 80px rgba(0,0,0,.6);
+}
+.ob-top{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
+.ob-brand{font-family:var(--sans);font-weight:600;font-size:12px;letter-spacing:4px;color:var(--cyan);margin-right:auto;text-transform:uppercase;}
+.ob-langs{display:flex;gap:2px;flex-wrap:wrap;}
+.ob-lang{background:transparent;border:1px solid transparent;border-radius:6px;color:var(--muted);font-family:var(--mono);font-size:11px;padding:5px 7px;cursor:pointer;}
+.ob-lang.active{color:var(--cyan);border-color:rgba(80,180,200,.4);}
+.ob-close{background:transparent;border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-size:15px;width:34px;height:34px;cursor:pointer;flex-shrink:0;}
+.ob-close:hover{color:var(--hi);border-color:var(--cyan);}
+.ob-title{font-family:var(--sans);font-weight:600;font-size:28px;line-height:1.15;color:var(--hi);margin-bottom:8px;}
+.ob-sub{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.5;color:var(--text);margin-bottom:18px;}
+.ob-section{margin-top:18px;}
+.ob-label{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.ob-goals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+.ob-goal,.ob-recent-item{min-width:0;}
+.ob-goal,.ob-recent-item{
+  display:flex;align-items:center;gap:12px;text-align:left;
+  background:rgba(80,180,200,.04);border:1px solid var(--border2);border-radius:12px;
+  padding:14px;cursor:pointer;color:inherit;transition:all .2s;min-height:64px;
+}
+.ob-goal:hover,.ob-recent-item:hover{border-color:rgba(80,180,200,.55);background:rgba(80,180,200,.09);transform:translateY(-1px);}
+.ob-goal-emoji{font-size:24px;line-height:1;flex-shrink:0;}
+.ob-goal-txt{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.ob-goal-txt b{font-family:var(--sans);font-weight:600;font-size:15px;color:var(--hi);}
+.ob-goal-txt small{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ob-recent{display:flex;flex-direction:column;gap:8px;}
+.ob-recent-item.first{border-color:rgba(212,168,75,.45);background:rgba(212,168,75,.06);}
+.ob-play{margin-left:auto;width:36px;height:36px;border-radius:50%;border:1px solid rgba(80,180,200,.45);display:flex;align-items:center;justify-content:center;color:var(--cyan);font-size:13px;flex-shrink:0;}
+.ob-recent-item.first .ob-play{border-color:var(--gold);color:var(--gold);}
+.ob-stats{margin-top:10px;font-family:var(--mono);font-size:12px;color:var(--green);}
+.ob-durs{display:flex;gap:8px;flex-wrap:wrap;}
+.ob-dur{background:transparent;border:1px solid var(--border2);border-radius:20px;color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 14px;cursor:pointer;}
+.ob-dur.active{border-color:var(--cyan);color:var(--cyan);background:rgba(80,180,200,.1);}
+.ob-form{display:flex;gap:10px;align-items:stretch;}
+.ob-form textarea{
+  flex:1;resize:none;background:#081120;border:1px solid var(--border2);border-radius:12px;
+  color:var(--hi);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.4;padding:12px 14px;
+}
+.ob-form textarea:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(80,180,200,.15);}
+.ob-form textarea::placeholder{color:#4d6b7a;}
+.ob-examples{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.ob-ex{background:transparent;border:none;color:var(--muted);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:13px;padding:4px 2px;cursor:pointer;text-align:left;text-decoration:underline dotted;text-underline-offset:3px;}
+.ob-ex:hover{color:var(--cyan);}
+.ob-btn{
+  font-family:var(--mono);font-size:13px;letter-spacing:.5px;border-radius:10px;cursor:pointer;
+  padding:12px 18px;border:1px solid var(--border2);background:transparent;color:var(--text);transition:all .2s;
+}
+.ob-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+.ob-btn.primary{background:var(--cyan);border-color:var(--cyan);color:#05121a;font-weight:500;}
+.ob-btn.primary:hover{background:#6cc6d8;color:#05121a;}
+.ob-btn.ghost{border-color:transparent;color:var(--muted);}
+.ob-result{margin-top:4px;padding:18px;border:1px solid rgba(80,180,200,.35);border-radius:14px;background:rgba(80,180,200,.05);}
+.ob-result-head{display:flex;align-items:center;gap:10px;font-family:var(--sans);font-size:20px;color:var(--hi);}
+.ob-quote{margin-top:8px;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;color:var(--muted);font-style:italic;}
+.ob-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;}
+.ob-chip{font-family:var(--mono);font-size:12px;color:var(--cyan);background:rgba(80,180,200,.1);border:1px solid rgba(80,180,200,.25);border-radius:20px;padding:5px 10px;}
+.ob-warn{margin-top:12px;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.45;color:var(--gold);background:rgba(212,168,75,.07);border:1px solid rgba(212,168,75,.25);border-radius:10px;padding:10px 12px;}
+.ob-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+.ob-actions .ob-btn.primary{flex:1 1 180px;font-size:15px;padding:14px 18px;}
+.ob-foot{margin-top:22px;padding-top:14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px;}
+.ob-phones{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:13px;color:var(--text);}
+.ob-links{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.ob-link{background:transparent;border:none;color:var(--cyan);font-family:var(--mono);font-size:12px;cursor:pointer;padding:6px 0;}
+.ob-link:hover{text-decoration:underline;}
+.news-list{list-style:none;display:flex;flex-direction:column;gap:14px;margin:14px 0 4px;}
+.news-list li{display:flex;gap:14px;align-items:flex-start;}
+.news-ic{width:36px;height:36px;flex-shrink:0;border-radius:10px;background:rgba(80,180,200,.1);border:1px solid rgba(80,180,200,.25);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--cyan);}
+.news-list b{font-family:var(--sans);font-weight:600;font-size:15px;color:var(--hi);}
+.news-list p{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.45;color:var(--text);margin-top:3px;}
+@media(max-width:700px){
+  .wizards-btn{display:none;}
+  .ob-overlay{padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom));}
+  .ob-card{padding:16px 16px 14px;border-radius:16px;}
+  .ob-top{flex-wrap:wrap;margin-bottom:12px;}
+  .ob-langs{order:3;width:100%;}
+  .ob-title{font-size:23px;}
+  .ob-sub{font-size:14px;}
+  .ob-goals{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+  .ob-goal{padding:12px;gap:10px;min-height:58px;}
+  .ob-goal-emoji{font-size:21px;}
+  .ob-goal-txt b{font-size:14px;}
+  .ob-goal-txt small{font-size:10px;white-space:normal;letter-spacing:0;line-height:1.3;}
+  .ob-form textarea{min-height:84px;}
+  .ob-form{flex-direction:column;}
+  .ob-form .ob-btn{padding:13px;}
+}
 </style>
 </head>
 <body>
@@ -869,8 +975,9 @@ html:lang(hi) .bib-footer-note,html:lang(hi) .wiz-step-body,html:lang(hi) .bib-r
     <button class="lang-btn" data-lang="hi" onclick="window.setLang('hi')">हिं</button>
   </div>
   <button class="mob-menu-btn" onclick="window.toggleMobSheet('presets')" data-i18n="mobMenuBtn">☰ Presets</button>
+  <button class="hdr-btn welcome-btn" id="welcomeBtn" onclick="window.openWelcome()">✦ ¿Qué hacemos hoy?</button>
   <button class="hdr-btn install-btn" id="installBtn" onclick="window.installApp()" data-i18n="installApp">Instalar app</button>
-  <button class="hdr-btn" onclick="window.resetAllWizards()" data-i18n="wizardsBtn" title="Ver wizards educativos nuevamente">? Wizards</button>
+  <button class="hdr-btn wizards-btn" onclick="window.resetAllWizards()" data-i18n="wizardsBtn" title="Ver wizards educativos nuevamente">? Wizards</button>
   <button class="hdr-btn gold" onclick="window.openBib()" data-i18n="scienceBtn">∂ Ciencia</button>
   <div class="status-dot" id="statusDot"></div>
   <div class="status-text" id="statusTxt" data-i18n="statusInactive">inactivo</div>
@@ -1282,6 +1389,10 @@ html:lang(hi) .bib-footer-note,html:lang(hi) .wiz-step-body,html:lang(hi) .bib-r
   </div>
 </div>
 
+<!-- ══ BIENVENIDA «¿Qué quieres hacer hoy?» y NOVEDADES (welcome.js) ══ -->
+<div class="ob-overlay" id="welcome"></div>
+<div class="ob-overlay" id="newsModal"></div>
+
 <!-- ══ MOBILE BOTTOM SHEET ═══════════════════════════ -->
 <div class="mob-sheet" id="mobSheet">
   <div class="mob-sheet-handle" onclick="window.closeMobSheet()"></div>
@@ -1321,6 +1432,7 @@ import {
   switchBibTab,
   whContinue
 } from './app.js';
+import { initWelcome } from './welcome.js';
 
 // Exponer funciones globales para onclick inline
 window.applyPreset = applyPreset;
@@ -1345,9 +1457,17 @@ window.handleBibOverlayClick = handleBibOverlayClick;
 window.switchBibTab = switchBibTab;
 window.whContinue = whContinue;
 
+// ¿Ya había usado la app? (se mira antes de init, que guarda ajustes)
+const RETURNING = (() => {
+  try {
+    return !!(localStorage.getItem('coherencia_settings') || localStorage.getItem('coherencia_wizards_seen') || localStorage.getItem('coherencia_lang'));
+  } catch (e) { return false; }
+})();
+
 // Init on load
 window.addEventListener('load', () => {
   init();
+  initWelcome({ returning: RETURNING });
 });
 
 // ── PWA: service worker (uso sin conexión) ──
