@@ -939,6 +939,30 @@ body.ob-lock .mob-sheet{visibility:hidden;}
 .news-ic{width:36px;height:36px;flex-shrink:0;border-radius:10px;background:rgba(80,180,200,.1);border:1px solid rgba(80,180,200,.25);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--cyan);}
 .news-list b{font-family:var(--sans);font-weight:600;font-size:15px;color:var(--hi);}
 .news-list p{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.45;color:var(--text);margin-top:3px;}
+/* Recordatorio diario: oculto hasta que el servidor confirme que está configurado */
+.reminder-entry,.reminder-only{display:none;}
+html[data-reminders="on"] .reminder-entry{display:inline-block;}
+html[data-reminders="on"] .reminder-only{display:block;}
+.ctrl-reminder{width:100%;text-align:center;}
+.rem-time{display:flex;flex-direction:column;gap:8px;margin:6px 0 4px;}
+.rem-time input{
+  width:auto;min-width:210px;max-width:100%;background:#081120;border:1px solid var(--border2);border-radius:12px;color:var(--hi);
+  font-family:var(--mono);font-size:26px;padding:10px 14px;color-scheme:dark;
+}
+.rem-time input:focus{outline:none;border-color:var(--cyan);}
+.rem-card{max-width:480px;}
+.rem-toast{
+  position:fixed;left:50%;bottom:calc(110px + env(safe-area-inset-bottom));z-index:9400;
+  transform:translate(-50%,20px);opacity:0;pointer-events:none;transition:all .3s ease;
+  width:min(440px,calc(100% - 24px));background:#0d1b2a;border:1px solid rgba(80,180,200,.4);
+  border-radius:14px;padding:14px 16px;box-shadow:0 20px 50px rgba(0,0,0,.55);
+  display:flex;flex-direction:column;gap:10px;
+}
+.rem-toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto;}
+.rem-toast-txt{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;color:var(--hi);}
+.rem-toast-actions{display:flex;gap:8px;}
+.rem-toast-actions .ob-btn.primary{flex:1;}
+
 @media(max-width:700px){
   .wizards-btn{display:none;}
   .ob-overlay{padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom));}
@@ -1223,6 +1247,9 @@ body.ob-lock .mob-sheet{visibility:hidden;}
         </div>
       </div>
 
+      <div class="ctrl-div reminder-only"></div>
+      <button class="ob-btn reminder-entry ctrl-reminder" onclick="window.openReminder()">🔔</button>
+
     </div><!-- /ctrlPanel -->
 
   </div><!-- /left-body -->
@@ -1392,6 +1419,8 @@ body.ob-lock .mob-sheet{visibility:hidden;}
 <!-- ══ BIENVENIDA «¿Qué quieres hacer hoy?» y NOVEDADES (welcome.js) ══ -->
 <div class="ob-overlay" id="welcome"></div>
 <div class="ob-overlay" id="newsModal"></div>
+<div class="ob-overlay" id="reminderModal"></div>
+<div class="rem-toast" id="reminderToast" role="status" aria-live="polite"></div>
 
 <!-- ══ MOBILE BOTTOM SHEET ═══════════════════════════ -->
 <div class="mob-sheet" id="mobSheet">
@@ -1433,6 +1462,7 @@ import {
   whContinue
 } from './app.js';
 import { initWelcome } from './welcome.js';
+import { initReminders } from './reminders.js';
 
 // Exponer funciones globales para onclick inline
 window.applyPreset = applyPreset;
@@ -1468,6 +1498,7 @@ const RETURNING = (() => {
 window.addEventListener('load', () => {
   init();
   initWelcome({ returning: RETURNING });
+  initReminders();
 });
 
 // ── PWA: service worker (uso sin conexión) ──

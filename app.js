@@ -261,6 +261,10 @@ export function togglePlay() {
   } else {
     S.playing = false;
     recordStats(S.sessionSec);
+    if (S.sessionSec >= 60) {
+      // reminders.js escucha esto para ofrecer el recordatorio diario
+      document.dispatchEvent(new CustomEvent('coherencia:session-end', { detail: { sec: S.sessionSec } }));
+    }
     releaseWakeLock();
     stopBinaural();
     stopNoise();

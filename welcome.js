@@ -54,6 +54,7 @@ const TXT = {
       title: 'Novedades', version: 'Versión', ok: 'Entendido', tryIt: 'Probar «¿Qué quieres hacer hoy?»',
       items: [
         ['✦', 'Nueva pantalla de inicio', 'Elige un objetivo o escribe lo que necesitas («6 s inhalando y exhalando para trabajar») y te armamos la sesión.'],
+        ['🔔', 'Recordatorio diario', 'Activa una notificación al día, a la hora que elijas, para no perder tu práctica.'],
         ['⏱', 'Sesiones con duración', 'Fija 5, 10, 20 minutos o los que quieras: suena una campana suave al terminar.'],
         ['🧠', 'Recuerda tus elecciones', 'Tus últimas sesiones, tu racha de días y tus ajustes quedan guardados en este navegador.'],
         ['🔔', 'Pitidos exactos', 'La guía sonora se programa en el reloj del audio: ya no se atrasa ni se pierde.'],
@@ -94,6 +95,7 @@ const TXT = {
       title: 'What’s new', version: 'Version', ok: 'Got it', tryIt: 'Try “What do you want to do today?”',
       items: [
         ['✦', 'New start screen', 'Pick a goal or type what you need (“6 s in and out for work”) and we build the session for you.'],
+        ['🔔', 'Daily reminder', 'Turn on one notification a day, at the time you choose, so you keep up your practice.'],
         ['⏱', 'Timed sessions', 'Set 5, 10, 20 minutes or any length: a soft bell rings at the end.'],
         ['🧠', 'Remembers your choices', 'Your recent sessions, day streak and settings are saved in this browser.'],
         ['🔔', 'Precise beeps', 'The audio guide is scheduled on the audio clock, so it no longer drifts or drops.'],
@@ -134,6 +136,7 @@ const TXT = {
       title: 'Nouveautés', version: 'Version', ok: 'Compris', tryIt: 'Essayer « Que veux-tu faire aujourd’hui ? »',
       items: [
         ['✦', 'Nouvel écran d’accueil', 'Choisis un objectif ou écris ce dont tu as besoin (« inspirer et expirer 6 s pour travailler ») et nous créons la séance.'],
+        ['🔔', 'Rappel quotidien', 'Active une notification par jour, à l’heure de ton choix, pour garder ta pratique.'],
         ['⏱', 'Séances minutées', 'Choisis 5, 10, 20 minutes ou la durée que tu veux : une cloche douce sonne à la fin.'],
         ['🧠', 'Se souvient de tes choix', 'Tes dernières séances, ta série de jours et tes réglages sont enregistrés dans ce navigateur.'],
         ['🔔', 'Bips précis', 'Le guide sonore est programmé sur l’horloge audio : il ne prend plus de retard.'],
@@ -174,6 +177,7 @@ const TXT = {
       title: 'Novidades', version: 'Versão', ok: 'Entendi', tryIt: 'Experimentar «O que você quer fazer hoje?»',
       items: [
         ['✦', 'Nova tela inicial', 'Escolha um objetivo ou escreva o que precisa («6 s inspirando e expirando para trabalhar») e montamos a sessão.'],
+        ['🔔', 'Lembrete diário', 'Ative uma notificação por dia, no horário que escolher, para manter sua prática.'],
         ['⏱', 'Sessões com duração', 'Defina 5, 10, 20 minutos ou o tempo que quiser: um sino suave toca no final.'],
         ['🧠', 'Lembra das suas escolhas', 'Suas últimas sessões, sequência de dias e ajustes ficam salvos neste navegador.'],
         ['🔔', 'Bipes precisos', 'O guia sonoro é programado no relógio do áudio: não atrasa nem se perde.'],
@@ -214,6 +218,7 @@ const TXT = {
       title: '新功能', version: '版本', ok: '知道了', tryIt: '试试「今天想做什么？」',
       items: [
         ['✦', '全新开始页面', '选择一个目标，或写下你的需求，我们会为你生成练习。'],
+        ['🔔', '每日提醒', '在你选择的时间每天收到一条通知，坚持练习。'],
         ['⏱', '定时练习', '可设定 5、10、20 分钟或任意时长，结束时会响起柔和的铃声。'],
         ['🧠', '记住你的选择', '最近的练习、连续天数和设置都会保存在此浏览器中。'],
         ['🔔', '精准提示音', '提示音按音频时钟精确安排，不再延迟或丢失。'],
@@ -254,6 +259,7 @@ const TXT = {
       title: 'नया क्या है', version: 'संस्करण', ok: 'समझ गया', tryIt: '«आज आप क्या करना चाहते हैं?» आज़माएं',
       items: [
         ['✦', 'नई शुरुआती स्क्रीन', 'कोई लक्ष्य चुनें या अपनी ज़रूरत लिखें, और हम आपके लिए सत्र तैयार करेंगे।'],
+        ['🔔', 'दैनिक अनुस्मारक', 'अपने चुने हुए समय पर रोज़ एक सूचना पाएं, ताकि अभ्यास न छूटे।'],
         ['⏱', 'समयबद्ध सत्र', '5, 10, 20 मिनट या कोई भी अवधि चुनें: अंत में एक हल्की घंटी बजेगी।'],
         ['🧠', 'आपकी पसंद याद रखता है', 'आपके हाल के सत्र, लगातार दिनों की गिनती और सेटिंग्स इस ब्राउज़र में सहेजी जाती हैं।'],
         ['🔔', 'सटीक संकेत ध्वनि', 'ध्वनि संकेत ऑडियो घड़ी पर निर्धारित होते हैं: अब न देर होती है, न छूटते हैं।'],
@@ -423,6 +429,7 @@ function render() {
         <div class="ob-phones">${esc(T.headphones)}</div>
         <div class="ob-links">
           <button class="ob-link" id="obNews">${esc(T.whatsNew)}</button>
+          <button class="ob-link reminder-entry" id="obReminder"></button>
           <button class="ob-link" id="obExplore">${esc(T.explore)}</button>
         </div>
       </div>
@@ -436,6 +443,8 @@ function bind() {
   el('obClose').onclick = closeWelcome;
   el('obExplore').onclick = closeWelcome;
   el('obNews').onclick = () => openNews();
+  el('obReminder').onclick = () => { closeWelcome(); window.openReminder && window.openReminder(); };
+  el('obReminder').textContent = (window.__reminderEntry && window.__reminderEntry()) || '🔔';
   root.querySelectorAll('.ob-goal').forEach(b => b.onclick = () => {
     current = buildFromIntent({ preset: GOALS[b.dataset.goal].preset, goal: b.dataset.goal }, '');
     render();
@@ -577,6 +586,7 @@ export function initWelcome({ returning }) {
   // Enlaces compartibles: ?q=texto o ?go=objetivo
   const params = new URLSearchParams(location.search);
   const q = params.get('q'), go = params.get('go');
+  if (params.get('from') === 'reminder') { openWelcome(); return; }   // abierto desde la notificación
   if (q || go) { openWelcome({ query: q, goal: go }); ls.set(VERSION_KEY, APP_VERSION); return; }
 
   const seenVersion = ls.get(VERSION_KEY, null);

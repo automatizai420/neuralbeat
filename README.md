@@ -50,7 +50,11 @@ neuralbeat/
 ├── viz.js                # 6 visualizaciones en canvas
 ├── i18n.js               # Traducciones (es, en, fr, pt, zh, hi)
 ├── bib.js                # Sección «Ciencia» en los 6 idiomas
-├── sw.js                 # Service worker (uso sin conexión)
+├── sw.js                 # Service worker (sin conexión + notificaciones)
+├── intent.js             # Texto libre → sesión («¿Qué quieres hacer hoy?»)
+├── welcome.js            # Pantalla de inicio, recientes y Novedades
+├── reminders.js          # Recordatorio diario (interfaz)
+├── functions/            # Cloudflare Pages Functions (API del recordatorio)
 ├── manifest.webmanifest  # PWA: instalar en pantalla de inicio
 ├── icons/                # Íconos de la app
 ├── _headers              # Cabeceras para Cloudflare Pages
@@ -82,6 +86,33 @@ Las fases no se encadenan con `setTimeout`. Un **generador** produce pasos
 - Se puede **instalar** desde el navegador y funciona **sin conexión**
   (estrategia red-primero con respaldo en caché). Si cambias la lista de
   archivos precargados, sube `CACHE_VERSION` en `sw.js`.
+
+### Recordatorio diario (Web Push)
+
+Notificación diaria a la hora que elija cada persona, aunque la app esté
+cerrada. Código: `reminders.js` (interfaz), `sw.js` (muestra la
+notificación), `functions/api/push/[[path]].js` (Cloudflare Pages Function)
+y `.github/workflows/reminders.yml` (dispara el envío cada 15 min).
+
+Mientras no esté configurado, la opción **no aparece** en la app.
+
+**Configuración (una sola vez):**
+
+1. Generar claves: `node tools/generate-vapid.mjs`
+2. Cloudflare → Workers & Pages → KV → crear un namespace (p. ej. `coherencia-reminders`).
+3. Cloudflare → tu proyecto de Pages → Settings → Bindings → KV namespace:
+   nombre de variable `REMINDERS` → el namespace creado.
+4. Settings → Variables and Secrets (Production):
+   `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (secreto), `VAPID_SUBJECT` (`mailto:tu-correo`),
+   `CRON_SECRET` (secreto).
+5. Volver a desplegar (Deployments → Retry deployment) para que tome las variables.
+6. GitHub → Settings → Secrets and variables → Actions:
+   variable `SITE_URL` (`https://tu-dominio`, sin `/` final) y secreto `CRON_SECRET` (el mismo).
+
+Notas: en iPhone/iPad solo funciona con la app instalada (iOS 16.4+). Los
+horarios programados de GitHub Actions pueden retrasarse unos minutos; si se
+necesita más puntualidad, cualquier servicio de cron puede llamar a
+`POST /api/push/cron` con `Authorization: Bearer <CRON_SECRET>`.
 
 ### Ajustes guardados
 
