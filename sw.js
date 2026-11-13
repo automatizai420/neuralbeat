@@ -5,7 +5,7 @@
 // los problemas de "versión vieja pegada" y la app abre offline.
 // Sube CACHE_VERSION si cambia la lista de archivos precargados.
 // ════════════════════════════════════════════════════
-const CACHE_VERSION = 'neuralbeat-v9-5';
+const CACHE_VERSION = 'neuralbeat-v9-6';
 const PREFS_CACHE = 'coherencia-prefs';   // textos del recordatorio (no se borra al actualizar)
 const SHELL = [
   './',
@@ -20,6 +20,18 @@ const SHELL = [
   './intent.js',
   './welcome.js',
   './reminders.js',
+  './seo.js',
+  './fonts/dmmono-300-latin-ext.woff2',
+  './fonts/dmmono-300-latin.woff2',
+  './fonts/dmmono-300i-latin-ext.woff2',
+  './fonts/dmmono-300i-latin.woff2',
+  './fonts/dmmono-400-latin-ext.woff2',
+  './fonts/dmmono-400-latin.woff2',
+  './fonts/fonts.css',
+  './fonts/syne-400-latin-ext.woff2',
+  './fonts/syne-400-latin.woff2',
+  './fonts/syne-600-latin-ext.woff2',
+  './fonts/syne-600-latin.woff2',
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/icon-192.png',

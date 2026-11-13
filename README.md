@@ -1,18 +1,18 @@
 # 🧠 NeuralBeat - Coherencia Neuro-Cardíaca
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-9.1-green.svg)](https://neuralbeat.app)
-[![Languages](https://img.shields.io/badge/languages-6-orange.svg)](https://neuralbeat.app)
+[![Version](https://img.shields.io/badge/version-9.1-green.svg)](https://neuralbeat.online)
+[![Languages](https://img.shields.io/badge/languages-6-orange.svg)](https://neuralbeat.online)
 
 > Herramienta web de código abierto para sincronización cerebro-corazón mediante frecuencias binaurales, técnicas de pranayama y visualizaciones en tiempo real.
 
-[🌐 **Probar ahora**](https://neuralbeat.app) | [📖 **Documentación**](https://neuralbeat.app/llms.txt) | [🤖 **Guía para IA**](https://neuralbeat.app/AI.md)
+[🌐 **Probar ahora**](https://neuralbeat.online) | [📖 **Documentación**](https://neuralbeat.online/llms.txt) | [🤖 **Guía para IA**](https://neuralbeat.online/AI.md)
 
 ---
 
 ## ✨ Características
 
-- **27 presets científicamente fundamentados**
+- **20 programas: binaurales, solfeggio y pranayama**
   - Frecuencias binaurales: Delta, Theta, Schumann, Alpha, Beta, Gamma
   - Tonos de sanación Solfeggio: 174 Hz - 852 Hz
   - Técnicas de pranayama: Wim Hof, 4-7-8, Box, Nadi Shodhana, Dispenza
@@ -152,7 +152,7 @@ Beneficio: Liberación emocional, reparación, apertura del corazón
 
 ### Para Principiantes
 
-1. **Abre** [neuralbeat.app](https://neuralbeat.app)
+1. **Abre** [neuralbeat.online](https://neuralbeat.online)
 2. **Usa auriculares** (esencial para binaurales)
 3. **Selecciona** el preset **Alpha 10 Hz** (Coherencia Cardíaca)
 4. **Presiona** ▶ Play
@@ -310,7 +310,7 @@ binaural, ruido rosa, último preset y visualización. El idioma usa
   - `audio.js` - Motor de audio binaural
   - `breath.js` - Motor de respiración
   - `viz.js` - Visualizaciones en tiempo real
-  - `presets.js` - 27 presets con metadata completa
+  - `presets.js` - 20 programas con metadata completa
   - `i18n.js` - Traducciones (6 idiomas)
 
 - **Sin dependencias externas**: 100% código nativo del navegador
@@ -369,10 +369,10 @@ Toda la UI, presets, guías y documentación científica están traducidos.
 
 ## 📚 Documentación Adicional
 
-- [**llms.txt**](https://neuralbeat.app/llms.txt) - Documentación completa para motores de IA
-- [**AI.md**](https://neuralbeat.app/AI.md) - Guía específica para asistentes de IA
-- [**sitemap.xml**](https://neuralbeat.app/sitemap.xml) - Mapa del sitio
-- [**robots.txt**](https://neuralbeat.app/robots.txt) - Configuración de rastreadores
+- [**llms.txt**](https://neuralbeat.online/llms.txt) - Documentación completa para motores de IA
+- [**AI.md**](https://neuralbeat.online/AI.md) - Guía específica para asistentes de IA
+- [**sitemap.xml**](https://neuralbeat.online/sitemap.xml) - Mapa del sitio
+- [**robots.txt**](https://neuralbeat.online/robots.txt) - Configuración de rastreadores
 
 ---
 
@@ -426,4 +426,4 @@ MIT License - Uso libre para fines personales, educativos y de investigación.
 
 **Hecho con ❤️ para la comunidad de neurociencia, meditación y bienestar**
 
-[🌐 neuralbeat.app](https://neuralbeat.app) | [📧 Contacto](https://github.com/neuralbeat)
+[🌐 neuralbeat.online](https://neuralbeat.online) | [📧 Contacto](mailto:automatizai2024@gmail.com)

@@ -8,6 +8,7 @@ import { initAC, startBinaural, startTone, stopBinaural, startNoise, stopNoise, 
 import { BREATH_PRESETS, WH_DEFAULT, getPhaseDuration, getPhaseSequence } from './breath.js';
 import { I18N } from './i18n.js';
 import { renderBib } from './bib.js';
+import { applySeo } from './seo.js';
 import { initViz, setViz, resizeCanvas, initAnalyser, animateViz, stopViz } from './viz.js';
 
 // ─── STATE ──────────────────────────────────────────────────────────
@@ -50,7 +51,43 @@ export function setLang(lang) {
     b.classList.toggle('active', b.dataset.lang === lang));
   applyLang();
   renderBib(lang);
+  applySeo(lang);
   try { localStorage.setItem('coherencia_lang', lang); } catch (e) {}
+  if (langReady) syncLangInUrl(lang);
+}
+
+// Tras un cambio manual de idioma, la URL refleja el idioma (?lang=xx;
+// español sin parámetro) para que los enlaces compartidos lo conserven.
+let langReady = false;
+function syncLangInUrl(lang) {
+  try {
+    const url = new URL(location.href);
+    if (lang === 'es') url.searchParams.delete('lang');
+    else url.searchParams.set('lang', lang);
+    if (url.href !== location.href) history.replaceState(history.state, '', url);
+  } catch (e) {}
+}
+
+// Idioma inicial. ?lang= hace que cada idioma tenga su propia URL
+// (hreflang del sitemap). A los rastreadores no se les aplica el idioma
+// del navegador, para que cada URL muestre siempre el mismo idioma.
+function initialLang() {
+  try {
+    const q = new URLSearchParams(location.search).get('lang');
+    if (q && I18N[q]) return q;
+  } catch (e) {}
+  try {
+    const saved = localStorage.getItem('coherencia_lang');
+    if (saved && I18N[saved]) return saved;
+  } catch (e) {}
+  const isBot = /bot|crawl|spider|slurp|google|bing|baidu|yandex|duckduck|bytespider|petal|sogou|360spider/i.test(navigator.userAgent || '');
+  if (!isBot) {
+    for (const l of (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''])) {
+      const code = String(l).slice(0, 2).toLowerCase();
+      if (I18N[code]) return code;
+    }
+  }
+  return 'es';
 }
 
 // ─── THEME SYSTEM ───────────────────────────────────────────────────
@@ -1093,9 +1130,9 @@ export function init() {
   // Cargar tema guardado
   loadSavedTheme();
   
-  // Cargar idioma guardado
-  const savedLang = localStorage.getItem('coherencia_lang') || 'es';
-  setLang(savedLang);
+  // Idioma: ?lang= → elección guardada → idioma del navegador → español
+  setLang(initialLang());
+  langReady = true;
 
   // Inicializar visualizaciones
   initViz();

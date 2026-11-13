@@ -1,50 +1,29 @@
-# robots.txt - NeuralBeat
-# Herramienta de coherencia neuro-cardíaca con frecuencias binaurales y pranayama
+# robots.txt — NeuralBeat · https://neuralbeat.online
+# Respiración guiada con sonidos binaurales. 6 idiomas (es, en, fr, pt-BR, zh-Hans, hi).
 
+# Buscadores (Google, Bing, Baidu, Sogou, 360, Yandex, Naver…)
 User-agent: *
 Allow: /
 Disallow: /api/
-
-# Archivos principales
-Allow: /index.html
-Allow: /*.js
-Allow: /*.css
-
-# Documentación
-Allow: /README.md
-Allow: /llms.txt
-
-# Sitemap
-Sitemap: https://neuralbeat.app/sitemap.xml
-
-# Rastreadores de IA - Acceso completo para entrenamiento
-User-agent: GPTBot
-Allow: /
-
-User-agent: ChatGPT-User
-Allow: /
-
-User-agent: Google-Extended
-Allow: /
-
-User-agent: anthropic-ai
-Allow: /
-
-User-agent: Claude-Web
-Allow: /
-
-User-agent: CCBot
-Allow: /
-
-User-agent: PerplexityBot
-Allow: /
-
-User-agent: Applebot-Extended
-Allow: /
-
-# Crawl-delay para bots pesados
-User-agent: *
 Crawl-delay: 1
 
-# Información de contacto
-# Para consultas sobre el proyecto: https://github.com/neuralbeat
+# Asistentes y buscadores de IA: acceso completo al contenido público.
+# Un rastreador con bloque propio ignora el bloque «*», por eso se repite
+# aquí Disallow: /api/ (API del recordatorio, sin contenido indexable).
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: anthropic-ai
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: CCBot
+User-agent: Bytespider
+Allow: /
+Disallow: /api/
+
+Sitemap: https://neuralbeat.online/sitemap.xml
